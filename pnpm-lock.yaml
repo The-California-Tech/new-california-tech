@@ -18,8 +18,8 @@ importers:
         specifier: ^13.1.3
         version: 13.1.3
       symbiont-cms:
-        specifier: github:guutz/symbiont-cms#v1.0.3
-        version: https://codeload.github.com/guutz/symbiont-cms/tar.gz/4feb8ecd231947da5218ec9de6ab897957c7e7c3(svelte@5.55.1)
+        specifier: github:guutz/symbiont-cms#v1.0.4
+        version: https://codeload.github.com/guutz/symbiont-cms/tar.gz/c95f1732f4b49d9c0016f991119399bcbfcfb122(svelte@5.55.1)
     devDependencies:
       '@changesets/cli':
         specifier: 2.30.0
@@ -4167,9 +4167,9 @@ packages:
     resolution: {integrity: sha512-QjvU7EFemf6mRzdMGlAFttMWtAAVXrax61SZYHdkD6yoVGQ89VeyKfZD4H1JrV1WLmJBxWhFch9H6ig/87VGjw==}
     engines: {node: '>=18'}
 
-  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/4feb8ecd231947da5218ec9de6ab897957c7e7c3:
-    resolution: {tarball: https://codeload.github.com/guutz/symbiont-cms/tar.gz/4feb8ecd231947da5218ec9de6ab897957c7e7c3}
-    version: 1.0.3
+  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/c95f1732f4b49d9c0016f991119399bcbfcfb122:
+    resolution: {tarball: https://codeload.github.com/guutz/symbiont-cms/tar.gz/c95f1732f4b49d9c0016f991119399bcbfcfb122}
+    version: 1.0.4
     engines: {node: '>=18.18.0'}
     peerDependencies:
       svelte: ^5.51.2
@@ -8322,7 +8322,7 @@ snapshots:
       magic-string: 0.30.21
       zimmerframe: 1.1.4
 
-  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/4feb8ecd231947da5218ec9de6ab897957c7e7c3(svelte@5.55.1):
+  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/c95f1732f4b49d9c0016f991119399bcbfcfb122(svelte@5.55.1):
     dependencies:
       '@mdit/plugin-abbr': 0.22.2(markdown-it@14.1.1)
       '@mdit/plugin-attrs': 0.24.2(markdown-it@14.1.1)
