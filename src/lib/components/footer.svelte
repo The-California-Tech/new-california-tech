@@ -1,0 +1,90 @@
+<!-- packages/california-tech/src/lib/components/footer.svelte -->
+<script lang="ts">
+	import { siteConfig } from '$config/site';
+	import { fly } from 'svelte/transition';
+	import tippy from '$lib/actions/tippy';
+	import { strings } from '$lib/strings';
+
+	let className: string | undefined = undefined;
+	export { className as class };
+
+	const sinceYear = siteConfig.since ? siteConfig.since.toString() : undefined;
+	const curYear = new Date().toJSON().substring(0, 4);
+	const copyrightYear = `${sinceYear && sinceYear !== curYear ? `${sinceYear}-${curYear}` : `${curYear}`}`;
+</script>
+
+<footer
+	id="footer"
+	in:fly|global={{ y: 100, duration: 1200, delay: 900 }}
+	out:fly|global={{ y: 100, duration: 300 }}
+	class="flex flex-col justify-center items-center flex-none w-full mx-auto xl:mx-0 {className ?? ''}"
+>
+	<main
+		class="rounded-b-2xl pb6 my4 gap1 flex flex-col justify-center items-center md:(border-t-2 w-3xl mt-8)"
+	>
+		<div class="hidden">
+			{@html `This site is built with SvelteKit.`}
+		</div>
+		<div class="flex justify-center mt-4">
+			<a
+				use:tippy
+				href="/atom.xml"
+				class="btn btn-ghost"
+				aria-label="Atom Feed"
+				data-sveltekit-preload-data="off"
+				data-sveltekit-reload
+			>
+				<div class="!w-[1.75rem] !h-[1.75rem] i-ic-baseline-rss-feed"></div>
+			</a>
+			<a
+				use:tippy
+				href="/sitemap.xml"
+				class="btn btn-ghost"
+				aria-label="Sitemap"
+				data-sveltekit-preload-data="off"
+				data-sveltekit-reload
+			>
+				<div class="!w-[1.75rem] !h-[1.75rem] i-mdi-sitemap-outline"></div>
+			</a>
+		</div>
+		<p itemprop="copyrightNotice">
+			Copyright © <span itemprop="copyrightYear">{copyrightYear}</span>
+			<span itemprop="copyrightHolder">{siteConfig.title}</span>
+		</p>
+		<div class="">
+			Powered by
+			<a
+				use:tippy
+				aria-label={strings.QWER()}
+				rel="external"
+				href="https://kit.svelte.dev"
+				class="font-900"
+			>
+				SvelteKit
+			</a>
+		</div>
+		<a
+			itemprop="copyrightNotice"
+			href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1"
+			aria-label="Creative Commons License"
+			target="_blank"
+			rel="noreferrer noopener license external"
+			style="display:inline-block;"
+		>
+			CC BY-NC-SA 4.0
+		</a>
+	</main>
+</footer>
+
+<style lang="scss">
+	#footer main {
+		background-color: var(--qwer-bg-color);
+		color: var(--qwer-text-color);
+		border-top-color: var(--qwer-border-top-color);
+	}
+	#footer a:not(.btn) {
+		&:hover {
+			color: var(--qwer-link-hover-color);
+		}
+	}
+</style>
