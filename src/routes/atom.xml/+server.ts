@@ -1,11 +1,10 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { siteConfig } from '$config/site';
-import { getAllPosts } from 'symbiont-cms/server';
-import type { Post as SymbiontPost } from 'symbiont-cms';
+import { symbiont } from '$lib/symbiont';
 
-const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<SymbiontPost[]> => {
+const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<any[]> => {
   try {
-    return await getAllPosts({ fetch, limit: 100 });
+    return await symbiont.getAllPages({ fetch, limit: 100 });
   } catch (error) {
     console.error('[atom.xml] Error fetching posts:', error);
     return [];
@@ -14,6 +13,9 @@ const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<SymbiontPost[
 
 const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
   const posts = await fetchPosts(fetch);
+  const author = siteConfig.author ?? {
+    name: siteConfig.title,
+  };
   
   return `<?xml version='1.0' encoding='utf-8'?>
 <feed xmlns="http://www.w3.org/2005/Atom" ${siteConfig.lang ? `xml:lang="${siteConfig.lang}"` : ''}>
@@ -31,15 +33,15 @@ ${
 <link href="${new URL('atom.xml', siteConfig.url).href}" rel="self" type="application/atom+xml"/>
 <updated>${new Date().toJSON()}</updated>
 <author>
-  <name><![CDATA[${siteConfig.author.name}]]></name>
+  <name><![CDATA[${author.name}]]></name>
 </author>
 ${posts
   .map((post) => {
     return `<entry>
     <title type="html"><![CDATA[${post.title ?? 'Untitled'}]]></title>
-    <author><name><![CDATA[${siteConfig.author.name}]]></name></author>
-    <link href="${new URL(post.slug, siteConfig.url).href}" />
-    <id>${new URL(post.slug, siteConfig.url).href}</id>
+    <author><name><![CDATA[${author.name}]]></name></author>
+    <link href="${new URL(post.slug ?? '/', siteConfig.url).href}" />
+    <id>${new URL(post.slug ?? '/', siteConfig.url).href}</id>
     <published>${new Date(post.publish_at ?? new Date()).toJSON()}</published>
     <updated>${new Date(post.updated_at ?? post.publish_at ?? new Date()).toJSON()}</updated>
     <summary type="html"><![CDATA[${post.content?.substring(0, 200) ?? ''}]]></summary>

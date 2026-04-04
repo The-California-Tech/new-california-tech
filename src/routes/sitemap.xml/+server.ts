@@ -1,11 +1,10 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { siteConfig } from '$config/site';
-import { getAllPosts } from 'symbiont-cms/server';
-import type { Post as SymbiontPost } from 'symbiont-cms';
+import { symbiont } from '$lib/symbiont';
 
-const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<SymbiontPost[]> => {
+const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<any[]> => {
   try {
-    return await getAllPosts({ fetch, limit: 100 });
+    return await symbiont.getAllPages({ fetch, limit: 100 });
   } catch (error) {
     console.error('[sitemap.xml] Error fetching posts:', error);
     return [];

@@ -1,20 +1,19 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { siteConfig } from '$config/site';
-import { getAllPosts } from 'symbiont-cms/server';
-import type { Post as SymbiontPost } from 'symbiont-cms';
+import { symbiont } from '$lib/symbiont';
 
 const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<any[]> => {
   try {
-    const postsFromDb = await getAllPosts({ fetch, limit: 100 });
+    const postsFromDb = await symbiont.getAllPages({ fetch, limit: 100 });
       
     return postsFromDb
       .filter((post) => {
         // Filter out unlisted posts (if that field exists)
-        return true; // Adjust based on your needs
+        return typeof post.slug === 'string' && post.slug.length > 0;
       })
       .map((post) => ({
-        id: post.slug,
-        url: `${new URL(post.slug, siteConfig.url).href}`,
+        id: post.slug ?? '',
+        url: `${new URL(post.slug ?? '/', siteConfig.url).href}`,
         title: post.title ?? 'Untitled',
         summary: post.content?.substring(0, 200) ?? '',
         image: undefined,
@@ -34,6 +33,11 @@ const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<any[]> => {
 
 const render = async (fetch: typeof globalThis.fetch) => {
   const items = await fetchPosts(fetch);
+  const author = siteConfig.author ?? {
+    name: siteConfig.title,
+    github: siteConfig.url,
+    avatar: `${new URL('favicon.png', siteConfig.url).href}`,
+  };
   
   return {
     version: 'https://jsonfeed.org/version/1.1',
@@ -41,13 +45,13 @@ const render = async (fetch: typeof globalThis.fetch) => {
     home_page_url: siteConfig.url,
     feed_url: `${new URL(`feed.json`, siteConfig.url).href}`,
     description: siteConfig.description,
-    icon: siteConfig.author.avatar,
+    icon: author.avatar,
     favicon: `${new URL(`favicon.png`, siteConfig.url).href}`,
     authors: [
       {
-        name: siteConfig.author.name,
-        url: siteConfig.author.github,
-        avatar: siteConfig.author.avatar,
+        name: author.name,
+        url: author.github,
+        avatar: author.avatar,
       },
     ],
     language: siteConfig.lang ?? 'en',
