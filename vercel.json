@@ -26,5 +26,11 @@
       ]
     }
   ],
-  "trailingSlash": false
+  "trailingSlash": false,
+  "crons": [
+    {
+      "path": "/api/sync",
+      "schedule": "0 */2 * * *"
+    }
+  ]
 }
