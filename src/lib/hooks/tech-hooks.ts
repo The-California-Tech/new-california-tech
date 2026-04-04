@@ -6,7 +6,6 @@ import {
 	getPropertyNumberValue,
 } from 'symbiont-cms/server';
 import { parseTechIssueDate, parseWebsitePublishDate } from './utils/date-parser.js';
-import { pdf } from 'pdf-to-img';
 import { createHash } from 'crypto';
 
 const WEB_LAYOUT_FORMAT_PROPERTY_NAME = 'Web Layout Format';
@@ -73,6 +72,9 @@ function countWordsFromMarkdown(markdown: string): number {
  * Uses pdf-to-img which runs fully in-process (no external tools needed).
  */
 async function generateThumbnailBuffer(pdfUrl: string): Promise<Buffer> {
+	// Lazy-load pdf-to-img so SSR route loads do not require pdfjs/canvas polyfills.
+	const { pdf } = await import('pdf-to-img');
+
   // Fetch and convert to data URL (required by pdf-to-img)
   const response = await fetch(pdfUrl);
   if (!response.ok) {
