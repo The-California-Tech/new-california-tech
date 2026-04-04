@@ -1,5 +1,5 @@
 import { handlePollBlogRequest } from 'symbiont-cms/server';
-import { symbiont } from '$lib/symbiont.js';
+import { symbiontSync } from '$lib/symbiont.server.js';
 import type { RequestEvent } from '@sveltejs/kit';
 
 /**
@@ -7,5 +7,5 @@ import type { RequestEvent } from '@sveltejs/kit';
  * Authenticates with CRON_SECRET and syncs content from Notion to Supabase
  */
 export async function GET(event: RequestEvent) {
-	return handlePollBlogRequest(symbiont, event);
+	return handlePollBlogRequest(symbiontSync, event);
 }
