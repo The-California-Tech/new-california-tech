@@ -4,6 +4,7 @@
 import type { WebsitePage } from 'symbiont-cms';
 import type { Post } from '$lib/types/post';
 import { renderSummaryToHtml } from 'symbiont-cms/server';
+import { getAppThumbnailUrl } from '$lib/utils/image-url';
 
 const VALID_COVER_STYLES = new Set(['TOP', 'RIGHT', 'BOT', 'LEFT', 'IN', 'NONE']);
 
@@ -83,6 +84,7 @@ export function symbiontToTechArticle(
 	const coverCaption = typeof metadata.coverCaption === 'string'
 		? metadata.coverCaption
 		: undefined;
+	const thumbnail = getAppThumbnailUrl(cover);
 	const coverInPost = typeof metadata.coverInPost === 'boolean'
 		? metadata.coverInPost
 		: true;
@@ -100,6 +102,7 @@ export function symbiontToTechArticle(
 		summary: post.summary ?? '',
 		description: post.description ?? '',
 		cover,
+		thumbnail,
 		tags: Array.isArray(post.tags) ? post.tags.filter(tag => !['web submission', 'Web Only'].includes(tag)) : [],
 		authors: Array.isArray(post.authors) ? post.authors : [],
 		

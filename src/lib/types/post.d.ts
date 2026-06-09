@@ -15,6 +15,7 @@ export namespace Post {
     updated: string;
     created: string;
     cover?: string;
+    thumbnail?: string;
     coverInPost?: boolean;
     coverCaption?: string;
     coverStyle: CoverStyle;

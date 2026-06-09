@@ -8,11 +8,7 @@
 
 	const numberPostsEager = 3;
 	const showPreviewSummary = $derived(data.showPreviewSummary ?? true);
-	const transformedCover = $derived(
-		data.cover?.includes('supabase.co')
-			? `${data.cover}?width=640&quality=72&format=webp`
-			: data.cover
-	);
+	const previewCover = $derived(data.thumbnail ?? data.cover);
 	const formattedDate = $derived.by(() => {
 		const publishDate = new Date(data.published);
 		if (Number.isNaN(publishDate.getTime())) {
@@ -55,12 +51,12 @@
 			</div>
 		{/if}
 
-		{#if data.cover && data.coverStyle !== 'NONE'}
+		{#if previewCover && data.coverStyle !== 'NONE'}
 			{#if data.coverStyle === 'IN'}
 				<ImgBanner
 					loading={index < numberPostsEager ? 'eager' : 'lazy'}
 					decoding={index < numberPostsEager ? 'auto' : 'async'}
-					src={transformedCover ?? data.cover}
+					src={previewCover}
 					imgClass="z-1 blur-sm op-80 absolute object-cover w-full h-full transition transform duration-300 ease-in-out group-hover:(scale-110 blur-none)"
 				/>
 				<div class="coverStyle-IN z-2 px-6 pt-4 pb-6 flex flex-col gap-2 bg-white/[0.25] dark:bg-black/[0.25]">
@@ -97,7 +93,7 @@
 					<div class="overflow-hidden">
 						<a href={data.slug} class="cursor-pointer" itemprop="url">
 							<ImgBanner
-								src={transformedCover ?? data.cover}
+								src={previewCover}
 								loading={index < numberPostsEager ? 'eager' : 'lazy'}
 								decoding={index < numberPostsEager ? 'auto' : 'async'}
 								imgClass="op-90 group-hover:scale-105 transition transform duration-300 ease-in-out w-full h-auto"

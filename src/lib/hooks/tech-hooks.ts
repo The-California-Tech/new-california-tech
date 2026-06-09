@@ -163,8 +163,11 @@ export const publishCheckHook: Hook<boolean> = {
 
 		const isPublished = status?.status?.name === 'Published';
 		const hasPrintOnlyTag = isPrintOnlyOrAdvertisement(ctx);
+		const websiteDate = (ctx.page.properties['Website Publish Date'] as any)?.date?.start;
+		const issueProperty = (ctx.page.properties.Issue as any)?.select?.name;
 
-		const shouldPublish = isPublished && !hasPrintOnlyTag;
+		// make sure there's a date specified somewhere (either Issue or Website Publish Date) before allowing publish
+		const shouldPublish = isPublished && !hasPrintOnlyTag && (websiteDate || issueProperty);
 
 		if (!shouldPublish) {
 			ctx.logger.debug({
@@ -222,7 +225,7 @@ export const wordCountSyncHook: Hook<void> = {
 
 export const articlePreviewMetadataHook: Hook<Record<string, unknown>> = {
 	name: 'tech:metadata:preview-display',
-	event: 'metadata:custom',
+	event: 'metadata:add',
 	priority: 'override',
 	fn: async (ctx: HookContext) => {
 		const webLayoutFormat = normalizeWebLayoutFormat(
@@ -304,15 +307,13 @@ export const publishDateHook: Hook<string | Date> = {
 		}
 
 		// Neither property has a date — definitively no publish date.
-		// Return `false` (not `null`) so the chain stops here and does NOT fall
-		// through to the default hook (which would set publish_at = last_edited_time).
 		ctx.logger.debug({
 			event: 'publish_date_not_found',
 			pageId: ctx.page.id,
 			issueProperty,
 			websiteDate
 		});
-		return false;
+		return null;
 	}
 };
 
@@ -403,7 +404,7 @@ export const archiveIssueHooks: Hook[] = [
 	},
 	{
 		name: 'archives:metadata:resolver',
-		event: 'metadata:custom',
+		event: 'metadata:add' as Hook['event'],
 		priority: 'override',
 		fn: async (ctx: HookContext) => {
 			// Prefer the URL uploaded this run (stashed by archives:pdf on page:before);
@@ -633,7 +634,7 @@ export const websitePagesHooks: Hook[] = [
 	// Extract custom metadata: type, status, redirectLink, file
 	{
 		name: 'pages:metadata:page-type',
-		event: 'metadata:custom',
+		event: 'metadata:add' as Hook['event'],
 		priority: 'override',
 		fn: async (ctx: HookContext) => {
 			const type = (ctx.page.properties.Type as any)?.select?.name || 'Content';

@@ -28,27 +28,15 @@ export const symbiont = createSymbiontClient({
 	databases: [
 		{
 			alias: 'tech-article-staging',
-			dataSourceId: '6cc3888f-d9fa-4075-add9-b596e6fc44f3',
-
-			syncBackToNotion: {
-				content: false,
-				properties: true,
-			},
-
-			slugProperty: 'Website Slug',
-			tagsProperty: 'Tags',
-			authorsProperty: 'Authors',
-			coverProperty: 'Cover Photo',
-			summaryProperty: 'Website Summary'
+			dataSourceId: '6cc3888f-d9fa-4075-add9-b596e6fc44f3'
 		},
 		{
 			alias: 'tech-archives',
-			dataSourceId: '3061cbde-6d28-8093-96e0-000bc5d1741a',
+			dataSourceId: '3061cbde-6d28-8093-96e0-000bc5d1741a'
 		},
 		{
 			alias: 'tech-website-pages',
-			dataSourceId: '3061cbde-6d28-8081-8ddb-000bbc2f76e1',
-			slugProperty: 'Slug',
+			dataSourceId: '3061cbde-6d28-8081-8ddb-000bbc2f76e1'
 		}
 	]
 });

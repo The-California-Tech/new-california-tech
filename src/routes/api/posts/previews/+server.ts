@@ -75,6 +75,7 @@ export async function GET({ fetch, url }) {
 				tags: Array.from(new Set(flattenedTags)),
 				published: post.published,
 				cover: post.cover,
+				thumbnail: post.thumbnail,
 				coverStyle: post.coverStyle,
 			};
 		});
