@@ -2,6 +2,7 @@ import { symbiont } from '$lib/symbiont';
 import { symbiontToTechArticle } from '$lib/utils/post-converter';
 import { compareStringDesc, getPacificDateKey, sortByPublishDayThenLayoutWeightDesc } from '$lib/utils/post-sorting';
 import type { Issue } from '$lib/types/index';
+import { getAppThumbnailUrl, getIssueCoverThumbnailUrl } from './image-url';
 
 export const FETCH_BATCH_SIZE = 1000;
 export const WEBSITE_ALIAS = 'tech-article-staging';
@@ -134,7 +135,7 @@ export async function buildIssueCards(fetchFn: typeof fetch): Promise<Issue.Card
 		return {
 			date: issueDate,
 			label: formatIssueLabel(issueDate),
-			cover: archiveIssue?.cover,
+			cover: getIssueCoverThumbnailUrl(archiveIssue?.cover),
 			hasWebsite: Boolean(websiteIssue),
 			hasPdf: Boolean(archiveIssue?.hasPdf)
 		};

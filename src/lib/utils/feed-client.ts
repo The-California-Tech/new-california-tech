@@ -3,7 +3,12 @@ import type { Issue } from '$lib/types/index';
 
 export type PostPreviewPage = {
 	posts: Post.Post[];
-	nextOffset: number;
+	/**
+	 * Issue cursor, not a row offset: the number of whole issues consumed so
+	 * far. The feed pages by issue so that a page never ends mid-issue, and a
+	 * row offset would drift each time an issue got extended to its boundary.
+	 */
+	nextIssueOffset: number;
 	hasMore: boolean;
 };
 
@@ -14,7 +19,7 @@ export type IssueCardsPage = {
 };
 
 type FetchPostPreviewPageOptions = {
-	offset: number;
+	issueOffset: number;
 	limit: number;
 	query?: string;
 	tag?: string;
@@ -41,7 +46,7 @@ export async function fetchPostPreviewPage(
 	options: FetchPostPreviewPageOptions
 ): Promise<PostPreviewPage> {
 	const params = new URLSearchParams();
-	params.set('offset', String(options.offset));
+	params.set('issueOffset', String(options.issueOffset));
 	params.set('limit', String(options.limit));
 	if (options.query) params.set('q', options.query);
 	if (options.tag) params.set('tag', options.tag);
@@ -55,7 +60,7 @@ export async function fetchPostPreviewPage(
 	const payload = await response.json();
 	return {
 		posts: payload.posts ?? [],
-		nextOffset: payload.nextOffset ?? options.offset,
+		nextIssueOffset: payload.nextIssueOffset ?? options.issueOffset,
 		hasMore: Boolean(payload.hasMore)
 	};
 }

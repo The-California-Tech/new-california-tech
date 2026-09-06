@@ -1,11 +1,12 @@
 // packages/california-tech/src/routes/categories/+page.server.ts
+import type { PageServerLoad } from './$types';
 import { symbiont } from '$lib/symbiont';
 import { symbiontToTechArticle } from '$lib/utils/post-converter';
 import type { Tags } from '$lib/types/tags';
 
 export const prerender = false;
 
-export async function load({ fetch }) {
+export const load: PageServerLoad = async ({ fetch }) => {
 	try {
 		const postsFromDb = await symbiont.getAllPages({ fetch, limit: 1000 });
 		const allPosts = postsFromDb.map((post) => symbiontToTechArticle(post));
@@ -33,4 +34,4 @@ export async function load({ fetch }) {
 		console.error('[categories/+page.server] Error loading categories:', error);
 		return { allTags: [] };
 	}
-}
+};

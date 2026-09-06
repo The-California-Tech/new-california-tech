@@ -1,0 +1,32 @@
+# Committed, and deliberately contains NO `overrides:` block.
+#
+# This file used to be untracked and also carried:
+#
+#   overrides:
+#     symbiont-cms: link:../../shenanigans/symbiont-cms
+#
+# which was load-bearing for local development but fatal in CI (the path does
+# not exist on Vercel) and, worse, rewrote pnpm-lock.yaml so the committed
+# lockfile no longer resolved the `#v1.1.1` git tag. Because `allowBuilds` and
+# the dev override lived in the same gitignored file, keeping the override out
+# of git also kept `allowBuilds` out of production.
+#
+# They are now separated. `allowBuilds` lives here and ships. Local development
+# against a symbiont-cms checkout uses `pnpm run symbiont:link`, which swaps the
+# node_modules symlink directly and never touches pnpm config or the lockfile.
+# See scripts/symbiont-link.sh.
+# NOTE ON THE symbiont-cms KEY FORMAT:
+#   `allowBuilds` matches registry packages by bare name, but git-hosted packages
+#   are identified by `name@resolution` -- a bare `symbiont-cms: true` does NOT
+#   match and you get ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED. pnpm's error message
+#   suggests a commit-pinned URL, which would need editing on every release.
+#   Since pnpm 11.19 the *repository* form below also approves the package when
+#   pnpm downloads a tarball instead of cloning, so it survives retagging.
+#   (pnpm 11.22 is in use here; see pnpm/pnpm#12367.)
+allowBuilds:
+  symbiont-cms@git+https://github.com/guutz/symbiont-cms.git: true
+  svelte-preprocess: true
+  '@parcel/watcher': false
+  esbuild: false
+  sharp: false
+  workerd: false

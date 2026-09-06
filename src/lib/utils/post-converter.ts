@@ -1,14 +1,36 @@
 /**
  * Utility to convert Symbiont CMS posts to QWER post format
  */
-import type { WebsitePage } from 'symbiont-cms';
+import type { DatabasePage } from 'symbiont-cms';
 import type { Post } from '$lib/types/post';
 import { renderSummaryToHtml } from 'symbiont-cms/server';
 import { getAppThumbnailUrl } from '$lib/utils/image-url';
 
+/**
+ * A row as consumed by the converter. Deliberately loose, because three
+ * different shapes flow through here:
+ *
+ *  - `list_homepage_posts` RPC rows: have cover_width/cover_height/content_preview
+ *    and issue_date/issue_rank, but no `content` (the function omits it).
+ *  - `symbiont.getPageBySlug` (article pages): has full `content`, no cover_*.
+ *  - `tech-archives` / website pages via issues.ts: plain DatabasePage.
+ *
+ * Everything cover- and preview-related is therefore optional. Making
+ * cover_width/cover_height required was what broke the four call sites in
+ * issues.ts, [slug], issues/[date] and categories.
+ */
+export interface TechPageRow extends Partial<DatabasePage> {
+	cover_width?: number | null;
+	cover_height?: number | null;
+	/** left(content, 500) from list_homepage_posts(); backs the summary fallback. */
+	content_preview?: string | null;
+	issue_date?: string | null;
+	issue_rank?: number | null;
+}
+
 const VALID_COVER_STYLES = new Set(['TOP', 'RIGHT', 'BOT', 'LEFT', 'IN', 'NONE']);
 
-function getMetadata(post: WebsitePage): Record<string, unknown> {
+function getMetadata(post: TechPageRow): Record<string, unknown> {
 	const metadata = post.meta;
 	return metadata && typeof metadata === 'object' ? metadata as Record<string, unknown> : {};
 }
@@ -53,7 +75,7 @@ function getShowPreviewSummary(metadata: Record<string, unknown>, webLayoutForma
 	return true;
 }
 
-function toTechPublicSlug(post: WebsitePage): string {
+function toTechPublicSlug(post: TechPageRow): string {
 	const rawSlug = String(post.slug ?? '').trim();
 	const normalizedSlug = rawSlug.startsWith('/') ? rawSlug : `/${rawSlug}`;
 
@@ -70,7 +92,7 @@ function toTechPublicSlug(post: WebsitePage): string {
 }
 
 export function symbiontToTechArticle(
-	post: WebsitePage,
+	post: TechPageRow,
 	html?: string,
 	toc?: any[]
 ): Post.Post {
@@ -84,6 +106,12 @@ export function symbiontToTechArticle(
 	const coverCaption = typeof metadata.coverCaption === 'string'
 		? metadata.coverCaption
 		: undefined;
+	const coverWidth = typeof post.cover_width === 'number' && Number.isFinite(post.cover_width)
+		? post.cover_width
+		: undefined;
+	const coverHeight = typeof post.cover_height === 'number' && Number.isFinite(post.cover_height)
+		? post.cover_height
+		: undefined;
 	const thumbnail = getAppThumbnailUrl(cover);
 	const coverInPost = typeof metadata.coverInPost === 'boolean'
 		? metadata.coverInPost
@@ -92,18 +120,33 @@ export function symbiontToTechArticle(
 		? metadata.layoutWeight
 		: undefined;
 	const showPreviewSummary = getShowPreviewSummary(metadata, webLayoutFormat);
+	const tags: Array<string> = Array.isArray(post.tags) ? post.tags : [];
+
+	// list_homepage_posts() omits `content` (too large for a feed payload) and
+	// exposes left(content, 500) as content_preview instead. Article pages still
+	// get the full `content`. Prefer summary, then whichever body text we have.
+	const previewSource = post.summary?.trim()
+		|| post.content_preview?.trim()
+		|| post.content?.trim()
+		|| '';
 
 	return {
 		// Direct pass-through fields
-		// @ts-ignore -- slug will always be present at this point
 		slug: toTechPublicSlug(post),
 		title: post.title ?? 'Untitled',
 		content: post.content ?? '',
 		summary: post.summary ?? '',
-		description: post.description ?? '',
+		// `description` feeds <meta name="description"> and og:description in
+		// post_SEO.svelte. It used to come from WebsitePage.description, but that
+		// type was removed from symbiont-cms, and DatabasePage has no equivalent.
+		// Summary is the right source; leaving this '' emptied the meta tag on
+		// every article page.
+		description: post.summary?.trim() || '',
 		cover,
+		coverWidth,
+		coverHeight,
 		thumbnail,
-		tags: Array.isArray(post.tags) ? post.tags.filter(tag => !['web submission', 'Web Only'].includes(tag)) : [],
+		tags: tags.filter((tag) => !['web submission', 'Web Only'].includes(tag)),
 		authors: Array.isArray(post.authors) ? post.authors : [],
 		
 		// Date field mapping
@@ -114,7 +157,11 @@ export function symbiontToTechArticle(
 		// Rendered content
 		html: html ?? '',
 		toc: toc as any,
-		summary_html: post.summary ? renderSummaryToHtml(post.summary) : post.content ? renderSummaryToHtml(post.content).substring(0, 200) : '',
+		summary_html: post.summary?.trim()
+			? renderSummaryToHtml(post.summary)
+			: previewSource
+				? renderSummaryToHtml(previewSource).substring(0, 200)
+				: '',
 		
 		// QWER-specific UI fields (defaults)
 		coverStyle: getCoverStyle(metadata),

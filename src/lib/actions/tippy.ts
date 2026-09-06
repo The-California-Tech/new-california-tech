@@ -1,6 +1,12 @@
 import tippy, { type Props } from 'tippy.js';
+import type { ActionReturn } from 'svelte/action';
 
-export default function tooltip(node: HTMLElement, params: Partial<Props> = {}): SvelteActionReturnType {
+// `SvelteActionReturnType` was an ambient global in Svelte 3/4 and was removed
+// in Svelte 5. `ActionReturn` from 'svelte/action' is the replacement.
+export default function tooltip(
+  node: HTMLElement,
+  params: Partial<Props> = {}
+): ActionReturn<Partial<Props>> | void {
   if (!tippy) return;
 
   const defaultParams = {

@@ -18,7 +18,8 @@
 
 	let posts = $state<Post.Post[]>([]);
 	let hasMore = $state(false);
-	let nextOffset = $state<number>(0);
+	/** Whole issues already rendered — the feed pages by issue, not by row. */
+	let nextIssueOffset = $state<number>(0);
 	let isLoadingMore = $state(false);
 	let hasInitializedFromServer = $state(false);
 	let sentinel = $state<HTMLDivElement | null>(null);
@@ -32,10 +33,16 @@
 	const isFilterMode = $derived(Boolean(query || activeTag));
 	const renderedPosts = $derived.by(() => (hasInitializedFromServer ? posts : serverPosts));
 
+	// See the note in src/routes/+page.svelte: $effect does not run during SSR,
+	// so `hasMore` would still be false and the no-JS link would never render.
+	const effectiveHasMore = $derived(
+		hasInitializedFromServer ? hasMore : Boolean(data.hasMore)
+	);
+
 	const loadMoreHref = $derived.by(() => {
 		return buildCountLoadMoreHref({
 			basePath: `/issues/${issueDate}`,
-			hasMore,
+			hasMore: effectiveHasMore,
 			searchParams: page.url.searchParams,
 			nextCountHint: data.nextCount,
 			shownCount: data.shownCount,
@@ -50,14 +57,14 @@
 		isLoadingMore = true;
 		try {
 			const payload = await fetchPostPreviewPage(fetch, {
-				offset: nextOffset,
+				issueOffset: nextIssueOffset,
 				limit: batchSize,
 				query,
 				tag: activeTag,
 				beforeDate: issueDate
 			});
 			posts = mergeUniqueBy(posts, payload.posts, (post) => post.slug);
-			nextOffset = payload.nextOffset;
+			nextIssueOffset = payload.nextIssueOffset;
 			hasMore = payload.hasMore;
 		} catch (error) {
 			console.error('Failed to load more issue posts:', error);
@@ -69,7 +76,7 @@
 	$effect(() => {
 		posts = serverPosts;
 		hasMore = Boolean(data.hasMore);
-		nextOffset = data.shownCount ?? serverPosts.length;
+		nextIssueOffset = data.issueCursor ?? 0;
 		hasInitializedFromServer = true;
 	});
 

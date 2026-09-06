@@ -22,7 +22,8 @@
     "./src/**/*.svelte",
     "./tests/**/*.js",
     "./tests/**/*.ts",
-    "./tests/**/*.svelte"
+    "./tests/**/*.svelte",
+    "./scripts/**/*.ts"
   ],
   "exclude": ["node_modules", "build/**/*", "src/lib/template/**/*", "src/generated/**/*"]
 }

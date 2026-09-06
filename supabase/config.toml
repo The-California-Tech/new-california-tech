@@ -55,7 +55,24 @@ max_client_conn = 100
 enabled = true
 # Specifies an ordered list of schema files that describe your database.
 # Supports glob patterns relative to supabase directory: "./schemas/*.sql"
-schema_paths = []
+#
+# This was empty, which is why supabase/schemas/symbiont_pages.sql silently
+# drifted four months behind the migrations: the CLI never looked at it, so
+# `supabase db diff` had nothing to compare against and never complained.
+# Ordered by ownership, and the order is load-bearing:
+#   10_symbiont_core.sql  objects symbiont-cms reads/writes (pages,
+#                         image_metadata, storage listing). Treat as the
+#                         library's, not yours -- see the header in that file.
+#   20_tech_feed.sql      California Tech's own additions on top: the search_fts
+#                         column, tag listing, and the feed functions. symbiont
+#                         knows nothing about issues.
+#
+# The glob is spelled out rather than "./schemas/*.sql" so the dependency order
+# is explicit: 20_ ALTERs the table 10_ creates.
+schema_paths = [
+  "./schemas/10_symbiont_core.sql",
+  "./schemas/20_tech_feed.sql"
+]
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
@@ -92,10 +109,10 @@ openai_api_key = "env(OPENAI_API_KEY)"
 
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
-[inbucket]
-enabled = true
+# [inbucket]
+# enabled = true
 # Port to use for the email testing server web interface.
-port = 54324
+# port = 54324
 # Uncomment to expose additional ports for testing user applications that send emails.
 # smtp_port = 54325
 # pop3_port = 54326

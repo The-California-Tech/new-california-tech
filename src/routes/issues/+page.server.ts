@@ -1,3 +1,4 @@
+import type { PageServerLoad } from './$types';
 import { parsePositiveInt } from '$lib/utils/post-pagination';
 import { buildIssueCards } from '$lib/utils/issues';
 
@@ -10,7 +11,7 @@ export const prerender = false;
 
 const ISSUE_PAGE_BATCH_SIZE = 24;
 
-export async function load({ fetch, cookies, url }) {
+export const load: PageServerLoad = async ({ fetch, cookies, url }) => {
 	try {
 		const requestedCount = parsePositiveInt(url.searchParams.get('count'), ISSUE_PAGE_BATCH_SIZE);
 		const issues = await buildIssueCards(fetch);
@@ -40,4 +41,4 @@ export async function load({ fetch, cookies, url }) {
 			theme: 'light'
 		};
 	}
-}
+};

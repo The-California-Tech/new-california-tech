@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { parsePositiveInt } from '$lib/utils/post-pagination';
 import { buildIssueCards } from '$lib/utils/issues';
 
@@ -9,7 +10,7 @@ export const config = {
 	revalidate: 60
 };
 
-export async function GET({ fetch, url }) {
+export const GET: RequestHandler = async ({ fetch, url }) => {
 	try {
 		const offset = Math.max(0, parsePositiveInt(url.searchParams.get('offset'), 0));
 		const limit = parsePositiveInt(url.searchParams.get('limit'), ISSUE_PAGE_BATCH_SIZE);
@@ -28,4 +29,4 @@ export async function GET({ fetch, url }) {
 		console.error('[/api/issues/cards] Error fetching issues cards:', error);
 		return json({ error: 'Failed to fetch issues cards' }, { status: 500 });
 	}
-}
+};

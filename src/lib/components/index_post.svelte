@@ -4,11 +4,20 @@
 	import { UserConfig } from '$config/QWER.config';
 	import ImgBanner from '$lib/components/image_banner.svelte';
 
-	const { data, index, showDate = false } = $props<{ data: Post.Post; index: number; showDate?: boolean }>();
+	const { data, index, showDate = false }: { data: Post.Post; index: number; showDate?: boolean } = $props();
 
 	const numberPostsEager = 3;
 	const showPreviewSummary = $derived(data.showPreviewSummary ?? true);
 	const previewCover = $derived(data.thumbnail ?? data.cover);
+
+	// Reserve space for the cover image before it loads to prevent CLS.
+	// Falls back to undefined (no forced ratio) if dimensions weren't backfilled.
+	const coverAspectRatio = $derived.by(() => {
+		const { coverWidth, coverHeight } = data;
+		if (!coverWidth || !coverHeight) return undefined;
+		return `${coverWidth} / ${coverHeight}`;
+	});
+
 	const formattedDate = $derived.by(() => {
 		const publishDate = new Date(data.published);
 		if (Number.isNaN(publishDate.getTime())) {
@@ -53,12 +62,16 @@
 
 		{#if previewCover && data.coverStyle !== 'NONE'}
 			{#if data.coverStyle === 'IN'}
-				<ImgBanner
-					loading={index < numberPostsEager ? 'eager' : 'lazy'}
-					decoding={index < numberPostsEager ? 'auto' : 'async'}
-					src={previewCover}
-					imgClass="z-1 blur-sm op-80 absolute object-cover w-full h-full transition transform duration-300 ease-in-out group-hover:(scale-110 blur-none)"
-				/>
+				<div class="cover-frame" style:aspect-ratio={coverAspectRatio}>
+					<ImgBanner
+						loading={index < numberPostsEager ? 'eager' : 'lazy'}
+						decoding={index < numberPostsEager ? 'auto' : 'async'}
+						src={previewCover}
+						width={data.coverWidth}
+						height={data.coverHeight}
+						imgClass="z-1 blur-sm op-80 absolute object-cover w-full h-full transition transform duration-300 ease-in-out group-hover:(scale-110 blur-none)"
+					/>
+				</div>
 				<div class="coverStyle-IN z-2 px-6 pt-4 pb-6 flex flex-col gap-2 bg-white/[0.25] dark:bg-black/[0.25]">
 					<h2 class="text-xl font-bold" itemprop="name headline">
 						<a href={data.slug} class="u-url title-link" itemprop="url">
@@ -90,12 +103,14 @@
 				</div>
 			{:else}
 				<div class="flex flex-col">
-					<div class="overflow-hidden">
+					<div class="cover-frame overflow-hidden" style:aspect-ratio={coverAspectRatio}>
 						<a href={data.slug} class="cursor-pointer" itemprop="url">
 							<ImgBanner
 								src={previewCover}
 								loading={index < numberPostsEager ? 'eager' : 'lazy'}
 								decoding={index < numberPostsEager ? 'auto' : 'async'}
+								width={data.coverWidth}
+								height={data.coverHeight}
 								imgClass="op-90 group-hover:scale-105 transition transform duration-300 ease-in-out w-full h-auto"
 							/>
 						</a>
@@ -182,6 +197,15 @@
 				color: var(--qwer-title-hover-color);
 			}
 		}
+	}
+
+	.cover-frame {
+		position: relative;
+		width: 100%;
+		// Default fallback ratio if coverWidth/coverHeight are unavailable
+		// (e.g. posts created before the image_metadata backfill).
+		aspect-ratio: 16 / 9;
+		background-color: var(--qwer-bg-color);
 	}
 
 	.metadata {

@@ -85,9 +85,15 @@
 					<article class="issue-card">
 						<div class="issue-cover-wrap">
 							{#if issue.cover}
-								<img src={issue.cover} alt={`Cover for ${issue.label}`} class="issue-cover" loading="lazy" decoding="async" />
+								<img
+									src={issue.cover}
+									alt={`Cover for ${issue.label}`}
+									class="issue-cover"
+									loading="lazy"
+									decoding="async"
+								/>
 							{:else}
-								<div class="issue-cover-placeholder">{issue.label}</div>
+								{issue.label}
 							{/if}
 						</div>
 						<div class="issue-body">
@@ -151,18 +157,13 @@
 	}
 
 	.issue-cover-wrap {
-		--at-apply: 'w-full';
+		--at-apply: 'w-full flex items-center justify-center text-center font-semibold';
+		aspect-ratio: 11 / 17;
+		background: color-mix(in oklab, var(--qwer-bg-color) 94%, var(--qwer-border-color));
 	}
 
 	.issue-cover {
 		--at-apply: 'w-full h-auto block';
-	}
-
-	.issue-cover-placeholder {
-		--at-apply: 'w-full flex items-center justify-center px-4 text-center font-semibold op-70';
-		aspect-ratio: 11 / 17;
-		border: 1px dashed color-mix(in oklab, var(--qwer-border-color) 80%, transparent);
-		background: color-mix(in oklab, var(--qwer-bg-color) 94%, var(--qwer-border-color));
 	}
 
 	.issue-body {

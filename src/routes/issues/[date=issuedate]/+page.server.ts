@@ -1,14 +1,8 @@
-import { redirect } from '@sveltejs/kit';
+import { redirect, isRedirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 import { symbiont } from '$lib/symbiont';
-import { symbiontToTechArticle } from '$lib/utils/post-converter';
-import { sortByPublishDayThenLayoutWeightDesc } from '$lib/utils/post-sorting';
-import {
-	filterPostsFromIssueDate,
-	findNearestIssueDate,
-	getDistinctIssueDates,
-	getIssueBoundedEndIndex,
-	parsePositiveInt
-} from '$lib/utils/post-pagination';
+import { fetchFeedPage, FEED_BATCH_SIZE } from '$lib/utils/feed-query';
+import { parsePositiveInt } from '$lib/utils/post-pagination';
 
 export const config = {
 	maxage: 60,
@@ -17,98 +11,91 @@ export const config = {
 
 export const prerender = false;
 
-const PAGE_BATCH_SIZE = 30;
-const MAX_FETCH_LIMIT = 1000;
+/**
+ * `nearest_issue_date` is newer than the generated Database types shipped by
+ * symbiont-cms. See the same note in feed-query.ts.
+ */
+type RpcCapable = {
+	rpc: (
+		fn: string,
+		args: Record<string, unknown>
+	) => PromiseLike<{ data: string | null; error: { message: string } | null }>;
+};
 
-export async function load({ fetch, params, url, cookies }) {
+export const load: PageServerLoad = async ({ fetch, params, url, cookies }) => {
+	const theme = cookies.get('theme') || 'light';
+	const requestedIssueDate = params.date;
+
+	const emptyState = {
+		posts: [],
+		query: '',
+		tag: '',
+		hasMore: false,
+		shownCount: 0,
+		issueCursor: 0,
+		nextCount: FEED_BATCH_SIZE,
+		batchSize: FEED_BATCH_SIZE,
+		totalCount: 0,
+		issueDate: requestedIssueDate,
+		theme
+	};
+
 	try {
-		const requestedIssueDate = params.date;
 		const query = url.searchParams.get('q')?.toLowerCase() || '';
 		const tag = url.searchParams.get('tag') || '';
-		const requestedCount = parsePositiveInt(url.searchParams.get('count'), PAGE_BATCH_SIZE);
+		const requestedCount = parsePositiveInt(url.searchParams.get('count'), FEED_BATCH_SIZE);
 
-		const postsFromDb = await symbiont.getAllPages({ fetch, limit: MAX_FETCH_LIMIT });
-		const allPosts = postsFromDb
-			.map((post) => symbiontToTechArticle(post))
-			.sort(sortByPublishDayThenLayoutWeightDesc);
+		const client = symbiont.getSSRClient(fetch);
 
-		const issueDates = getDistinctIssueDates(allPosts);
-		const resolvedIssueDate = findNearestIssueDate(requestedIssueDate, issueDates);
+		// Snap to a real issue date. Previously this fetched up to 1000 rows just
+		// to build the distinct-date list; Postgres can answer it directly.
+		const { data: resolvedIssueDate, error: resolveError } = await (
+			client as unknown as RpcCapable
+		).rpc('nearest_issue_date', { p_target: requestedIssueDate });
+
+		if (resolveError) {
+			throw new Error(`nearest_issue_date failed: ${resolveError.message}`);
+		}
 
 		if (!resolvedIssueDate) {
-			return {
-				posts: [],
-				query,
-				tag,
-				hasMore: false,
-				shownCount: 0,
-				nextCount: PAGE_BATCH_SIZE,
-				batchSize: PAGE_BATCH_SIZE,
-				totalCount: 0,
-				issueDate: requestedIssueDate,
-				theme: cookies.get('theme') || 'light'
-			};
+			return { ...emptyState, query, tag };
 		}
 
 		if (resolvedIssueDate !== requestedIssueDate) {
 			const redirectTarget = new URL(`/issues/${resolvedIssueDate}`, url.origin);
 			redirectTarget.search = url.search;
-			throw redirect(302, `${redirectTarget.pathname}${redirectTarget.search}`);
+			redirect(302, `${redirectTarget.pathname}${redirectTarget.search}`);
 		}
 
-		let filteredPosts = filterPostsFromIssueDate(allPosts, resolvedIssueDate);
-
-		if (tag) {
-			filteredPosts = filteredPosts.filter((post) =>
-				(post.tags ?? []).some((postTag) => {
-					if (typeof postTag === 'string') return postTag === tag;
-					if (typeof postTag === 'object' && postTag !== null) {
-						return Object.values(postTag).flat().some((value) => String(value) === tag);
-					}
-					return false;
-				})
-			);
-		}
-
-		if (query) {
-			filteredPosts = filteredPosts.filter((post) =>
-				post.title.toLowerCase().includes(query) ||
-				(post.summary ?? '').toLowerCase().includes(query)
-			);
-		}
-
-		const boundedCount = getIssueBoundedEndIndex(filteredPosts, requestedCount);
-		const nextCount = getIssueBoundedEndIndex(filteredPosts, boundedCount + PAGE_BATCH_SIZE);
-		const posts = filteredPosts.slice(0, boundedCount).map(({ content, html, ...post }) => post);
-
-		return {
-			posts,
+		const page = await fetchFeedPage(client, {
 			query,
 			tag,
-			hasMore: boundedCount < filteredPosts.length,
-			shownCount: boundedCount,
-			nextCount,
-			batchSize: PAGE_BATCH_SIZE,
-			totalCount: filteredPosts.length,
+			beforeDate: resolvedIssueDate,
+			targetCount: requestedCount
+		});
+
+		return {
+			posts: page.posts,
+			query,
+			tag,
+			hasMore: page.hasMore,
+			shownCount: page.posts.length,
+			issueCursor: page.issueRank,
+			nextCount: page.posts.length + FEED_BATCH_SIZE,
+			batchSize: FEED_BATCH_SIZE,
+			totalCount: page.totalPosts,
 			issueDate: resolvedIssueDate,
-			theme: cookies.get('theme') || 'light'
+			theme
 		};
 	} catch (error) {
-		if (typeof error === 'object' && error && 'status' in error && error.status === 302) {
+		// Let SvelteKit's redirect signal through instead of swallowing it as an
+		// error. The old hand-rolled `status === 302` check missed the `location`
+		// property and only worked by luck.
+		if (isRedirect(error)) {
 			throw error;
 		}
+
 		console.error('[issues/[date]/+page.server.ts] Error loading issue page:', error);
-		return {
-			posts: [],
-			query: '',
-			tag: '',
-			hasMore: false,
-			shownCount: 0,
-			nextCount: PAGE_BATCH_SIZE,
-			batchSize: PAGE_BATCH_SIZE,
-			totalCount: 0,
-			issueDate: params.date,
-			theme: cookies.get('theme') || 'light'
-		};
+		return emptyState;
 	}
-}
+};
