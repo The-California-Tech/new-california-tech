@@ -157,6 +157,139 @@ end $$;
 
 
 -- ---------------------------------------------------------------------------
+-- 3b. Default privileges are off for future objects
+--
+--     This is what makes privileges declarative here: with no automatic grants,
+--     every privilege is an explicit GRANT, which the diff engine can express.
+--     If these defaults come back, the next regenerated baseline will silently
+--     ship a table that anon can TRUNCATE.
+--
+--     Also the local mirror of Supabase's 2026-10-30 breaking change, so this
+--     doubles as a check that we stay aligned with it.
+-- ---------------------------------------------------------------------------
+--     TABLES: tested empirically by creating one, rather than by reading
+--     pg_default_acl -- which would mean guessing the role the defaults are
+--     registered against (`supabase_admin` locally, `postgres` hosted) and
+--     parsing an ACL string.
+do $$
+declare
+  exposed boolean;
+begin
+  create table public.zz_default_probe (id integer);
+
+  select has_table_privilege('anon', 'public.zz_default_probe', 'SELECT')
+      or has_table_privilege('anon', 'public.zz_default_probe', 'INSERT')
+      or has_table_privilege('anon', 'public.zz_default_probe', 'TRUNCATE')
+      or has_table_privilege('authenticated', 'public.zz_default_probe', 'SELECT')
+    into exposed;
+
+  drop table public.zz_default_probe;
+
+  if exposed then
+    raise exception
+      'FAIL 3b: a newly created table in `public` is reachable by anon/authenticated without an explicit grant. See migrations/*_default_privileges.sql -- note the defaults may be registered against supabase_admin rather than postgres.';
+  end if;
+
+  raise notice 'OK  3b. new tables are NOT auto-exposed';
+end $$;
+
+
+-- ---------------------------------------------------------------------------
+-- 3c. RPC exposure allowlist
+--
+--     Every function in `public` is a PostgREST RPC endpoint if anon can execute
+--     it. This asserts the exposed set is exactly the intended one, which is the
+--     property that actually matters -- and unlike probing default privileges it
+--     holds regardless of *how* a function came to be exposed (Postgres's PUBLIC
+--     default, an explicit grant, a role we forgot to cover, a future migration).
+--
+--     Add a function here only when you mean to expose it as a public endpoint.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  allowed text[] := array[
+    'list_homepage_posts',
+    'nearest_issue_date',
+    'list_unique_tags'
+  ];
+  leaked text;
+begin
+  select string_agg(format('%s(%s)', p.proname, pg_get_function_arguments(p.oid)), ', ')
+    into leaked
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.prokind = 'f'
+    and not (p.proname = any(allowed))
+    and has_function_privilege('anon', p.oid, 'EXECUTE');
+
+  if leaked is not null then
+    raise exception
+      E'FAIL 3c: anon can execute unintended function(s) in `public`: %\n'
+      '  Each is a live PostgREST RPC endpoint. Either add an explicit\n'
+      '  `revoke all on function ... from public, anon, authenticated;` to\n'
+      '  migrations/*_harden_privileges.sql, or add it to the allowlist in this\n'
+      '  check if exposing it is intentional.', leaked;
+  end if;
+
+  -- And the converse: the intended endpoints must actually work.
+  foreach leaked in array allowed
+  loop
+    if not exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = leaked
+        and has_function_privilege('anon', p.oid, 'EXECUTE')
+    ) then
+      raise exception
+        'FAIL 3c: anon CANNOT execute public.% -- PostgREST will return 42501 and the feed will be empty. Add a grant in migrations/*_harden_privileges.sql.', leaked;
+    end if;
+  end loop;
+
+  raise notice 'OK  3c. exactly the intended functions are anon-executable';
+end $$;
+
+
+-- ---------------------------------------------------------------------------
+-- 3d. Every function pins search_path
+--
+--     Supabase's database linter calls this `function_search_path_mutable`.
+--     Without an explicit search_path a function resolves unqualified names
+--     using the CALLER's path, so a caller who can create objects in an earlier
+--     schema can shadow what the function meant to call. Severe for SECURITY
+--     DEFINER; still worth closing for INVOKER functions.
+--
+--     Also guards a subtler trap: CREATE OR REPLACE FUNCTION resets both the
+--     ACL *and* any SET clauses. Redefining a function without restating
+--     `set search_path` silently reintroduces this.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  mutable text;
+begin
+  select string_agg(format('%s(%s)', p.proname, pg_get_function_arguments(p.oid)), ', ')
+    into mutable
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.prokind in ('f', 'p')
+    and not exists (
+      select 1 from unnest(coalesce(p.proconfig, '{}')) as cfg
+      where cfg like 'search\_path=%'
+    );
+
+  if mutable is not null then
+    raise exception
+      E'FAIL 3d: function(s) in `public` have a mutable search_path: %\n'
+      '  Add `set search_path = ''''` (and schema-qualify everything) or\n'
+      '  `set search_path to ''public'', ''pg_temp''` to each.', mutable;
+  end if;
+
+  raise notice 'OK  3d. every function pins search_path';
+end $$;
+
+
+-- ---------------------------------------------------------------------------
 -- 4. Issue-boundary behavior, on synthetic data
 --
 --    Three issues: 5 posts, 5 posts, 3 posts. A target of 3 must still return

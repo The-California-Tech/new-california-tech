@@ -22,6 +22,21 @@
 --
 -- Ordering matters: image_metadata must exist before anything that joins it.
 -- `schema_paths` in config.toml applies these files in numeric order.
+--
+-- !! THESE FILES ARE AUTHORITATIVE FOR STRUCTURE, NOT FOR REVOKED PRIVILEGES !!
+--
+-- The diff engine models privileges additively -- it can emit GRANT but has no
+-- way to express "PUBLIC must not hold the default privilege". Every REVOKE
+-- below is therefore invisible to `supabase db diff`: it will not generate them,
+-- and it will report "No schema changes found" even when they are missing. A
+-- regenerated baseline silently drops all of them.
+--
+-- So the REVOKEs here are documentation of intent. The file that actually
+-- applies them is supabase/migrations/*_harden_privileges.sql, which is
+-- hand-written and must survive every baseline regeneration.
+--
+-- The real guard is behavioural: supabase/tests/feed_sql_checks.sql check 3.
+-- Run it after any schema change.
 -- ===========================================================================
 
 SET statement_timeout = 0;
@@ -36,6 +51,72 @@ SET row_security = on;
 
 SET default_tablespace = '';
 SET default_table_access_method = heap;
+
+-- ---------------------------------------------------------------------------
+-- Default privileges OFF, before anything is created.
+--
+-- Mirrors migrations/20260906184900_default_privileges.sql, and must stay in
+-- sync with it. `db diff` builds one database from the migrations and another
+-- from these schema files, then compares the resulting object privileges. If
+-- only one side has the defaults revoked, every table's grants differ and the
+-- diff is permanently noisy. ALTER DEFAULT PRIVILEGES is not a schema object, so
+-- the differ never emits it -- it only ever sees the consequences.
+--
+-- With the defaults off, every privilege in these files is an explicit GRANT,
+-- which the diff engine can express. That is what makes privileges declarative
+-- here at all; see the REVOKE warning in the header above for what happens
+-- otherwise.
+--
+-- Must precede the CREATE TABLE statements: ALTER DEFAULT PRIVILEGES only
+-- affects objects created after it runs.
+-- ---------------------------------------------------------------------------
+-- Note the role discovery: on a local stack these defaults are registered
+-- against `supabase_admin`, not `postgres`, and default privileges are keyed to
+-- the creating role -- so revoking them for the wrong role silently does
+-- nothing. `revoke all` rather than the four DML verbs, because the actual grant
+-- is `arwdDxtm`, which includes TRUNCATE (not subject to RLS), REFERENCES,
+-- TRIGGER and MAINTAIN.
+do $$
+declare
+  r record;
+begin
+  for r in
+    select distinct pg_get_userbyid(d.defaclrole) as rolename
+    from pg_default_acl d
+    join pg_namespace n on n.oid = d.defaclnamespace
+    where n.nspname = 'public'
+  loop
+    begin
+      execute format(
+        'alter default privileges for role %I in schema public
+           revoke all on tables from anon, authenticated, service_role', r.rolename);
+      execute format(
+        'alter default privileges for role %I in schema public
+           revoke all on sequences from anon, authenticated, service_role', r.rolename);
+      execute format(
+        'alter default privileges for role %I in schema public
+           revoke all on functions from public', r.rolename);
+      execute format(
+        'alter default privileges for role %I in schema public
+           revoke all on functions from anon, authenticated, service_role', r.rolename);
+    exception
+      when insufficient_privilege then
+        raise warning 'could not alter default privileges for role %', r.rolename;
+    end;
+  end loop;
+end $$;
+
+alter default privileges for role postgres in schema public
+  revoke all on tables from anon, authenticated, service_role;
+
+alter default privileges for role postgres in schema public
+  revoke all on sequences from anon, authenticated, service_role;
+
+alter default privileges for role postgres in schema public
+  revoke all on functions from public;
+
+alter default privileges for role postgres in schema public
+  revoke all on functions from anon, authenticated, service_role;
 
 --
 -- Extensions enabled on the hosted project. All three must be declared here or
@@ -158,12 +239,18 @@ create table if not exists public.image_metadata (
 create index if not exists image_metadata_bucket_path_idx
   on public.image_metadata (bucket_id, object_path);
 
+-- `set search_path = ''` is required, not stylistic: without it Supabase's
+-- database linter flags `function_search_path_mutable`, because unqualified
+-- references would resolve against the caller's search_path. With an empty path
+-- nothing resolves implicitly, so now() must be spelled pg_catalog.now().
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+security invoker
+set search_path = ''
 as $$
 begin
-  new.updated_at = now();
+  new.updated_at = pg_catalog.now();
   return new;
 end;
 $$;

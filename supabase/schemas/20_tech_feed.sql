@@ -21,9 +21,16 @@
 -- make RLS evaluate as the caller, and `supabase db diff` cannot represent view
 -- reloptions -- every generated migration silently recreated the view without
 -- it, which would have leaked unpublished and embargoed articles into the public
--- feed with no error. Functions spell `security invoker` as a literal word in
--- their body, which the diff tool round-trips exactly, so the protection is
--- visible in code review instead of hiding in metadata a routine command erases.
+-- feed with no error. Functions are safer: SECURITY INVOKER is the Postgres
+-- default for them, so there is no option to lose -- switching one to SECURITY
+-- DEFINER would require adding a visible keyword, not silently dropping one.
+--
+-- (A regenerated baseline does strip the literal `security invoker` words below.
+-- That is cosmetic, since it restates the default. feed_sql_checks.sql check 1
+-- asserts `prosecdef = false` on every function, which is what matters.)
+--
+-- Privileges are a different story -- see the REVOKE warning at the top of
+-- 10_symbiont_core.sql. `db diff` cannot express them in either direction.
 -- ===========================================================================
 
 
