@@ -49,11 +49,23 @@ trap 'rm -rf "$PROBE"' EXIT
 echo "Probing symbiont-cms#$TAG in $PROBE"
 echo
 
+# Pin the probe to the same pnpm the consumer runs. Without a packageManager
+# field corepack falls back to its own default (a different major), so the probe
+# would not reproduce the consumer's install behaviour -- and git-dependency
+# preparation is exactly where pnpm versions differ.
+PNPM_VERSION="$(pnpm --version 2>/dev/null || echo '')"
+if [ -n "$PNPM_VERSION" ]; then
+  PM_FIELD="\"packageManager\": \"pnpm@${PNPM_VERSION}\","
+else
+  PM_FIELD=""
+fi
+
 cat > "$PROBE/package.json" <<EOF
 {
   "name": "symbiont-tag-probe",
   "private": true,
   "type": "module",
+  ${PM_FIELD}
   "dependencies": {
     "symbiont-cms": "github:guutz/symbiont-cms#$TAG"
   }
@@ -68,7 +80,7 @@ EOF
 
 cd "$PROBE"
 
-if ! pnpm install --ignore-workspace-root-check 2>&1 | tail -20; then
+if ! pnpm install 2>&1 | tail -20; then
   echo
   echo "FAIL: pnpm install did not complete for #$TAG"
   exit 1

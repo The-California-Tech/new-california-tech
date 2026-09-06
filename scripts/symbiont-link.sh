@@ -26,7 +26,20 @@ BACKUP="$REPO_ROOT/node_modules/.symbiont-cms-tagged"
 
 usage() { echo "usage: $0 {link|unlink|status}" >&2; exit 2; }
 
-is_linked() { [ -L "$TARGET" ]; }
+# A plain `-L` test is NOT enough: pnpm's normal layout for a tagged git
+# dependency is ALSO a symlink, pointing into node_modules/.pnpm/. Treating that
+# as a dev link made `symbiont:status` report LOCAL for an ordinary tagged
+# install, and made `symbiont:link` refuse to do anything ("already linked").
+# A real dev link resolves OUTSIDE this project's node_modules.
+is_linked() {
+  [ -L "$TARGET" ] || return 1
+  local resolved
+  resolved="$(cd "$(dirname "$TARGET")" && cd "$(readlink "$TARGET")" 2>/dev/null && pwd)" || return 1
+  case "$resolved" in
+    "$REPO_ROOT"/node_modules/*) return 1 ;;  # pnpm store link => tagged install
+    *) return 0 ;;                            # outside the project => dev link
+  esac
+}
 
 cmd_status() {
   if [ ! -e "$TARGET" ] && [ ! -L "$TARGET" ]; then
@@ -85,11 +98,25 @@ cmd_unlink() {
   if [ -d "$BACKUP" ]; then
     mv "$BACKUP" "$TARGET"
     echo "restored tagged symbiont-cms from backup"
-  else
-    echo "no backup found -- run 'pnpm install' to restore the tagged version" >&2
+    cmd_status
+    return 0
   fi
 
-  cmd_status
+  # No backup: the link predates this script (pnpm's `overrides` used to create
+  # it). A plain `pnpm install` will NOT restore the package -- pnpm compares the
+  # lockfile, sees nothing to change, and reports "Already up to date" while
+  # node_modules/symbiont-cms stays missing. --force is what actually refetches.
+  echo "no backup found (link predates this script)." >&2
+  echo "Restoring from the lockfile with 'pnpm install --force'..." >&2
+  if (cd "$REPO_ROOT" && pnpm install --force); then
+    cmd_status
+  else
+    echo >&2
+    echo "pnpm install --force failed. If it failed while *preparing* the git" >&2
+    echo "dependency, the tag itself is broken -- run:" >&2
+    echo "    pnpm run symbiont:verify-tag" >&2
+    exit 1
+  fi
 }
 
 case "${1:-}" in
