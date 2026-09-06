@@ -35,13 +35,8 @@
   import { afterNavigate } from '$app/navigation';
   import { siteConfig } from '$config/site';
   import { onMount } from 'svelte';
-  // import { partytownSnippet } from '@qwik.dev/partytown/integration';
-  // let scriptEl: any;
-  
+
   onMount(() => {
-    // if (scriptEl) {
-    //   scriptEl.textContent = partytownSnippet();
-    // }
     if (browser) {
       document.documentElement.setAttribute('lang', siteConfig.lang);
     }
@@ -54,15 +49,6 @@
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   });
 </script>
-
-<!-- <svelte:head>
-  <script>
-    partytown = {
-      forward: ['plausible', 'dataLayer.push'],
-    };
-  </script>
-  <script bind:this={scriptEl}></script>
-</svelte:head> -->
 
 <Head />
 

@@ -11,9 +11,12 @@
   <link rel="apple-touch-icon" href="/favicon.png" type="image/png" />
   <link rel="shortcut icon" href="/favicon.png" type="image/png" />
 
-  <meta
-    name="generator"
-    content={'\x67\x68\x3A\x6B\x77\x63\x68\x61\x6E\x67\x30\x38\x33\x31\x2F\x73\x76\x65\x6C\x74\x65\x2D\x51\x57\x45\x52'} />
+  <!--
+    Removed: a hex-escaped <meta name="generator"> that decoded to
+    "gh:kwchang0831/svelte-QWER" -- the upstream theme author's repo, emitted on
+    every page of the paper. The theme's license is honoured in LICENSE; a
+    site-wide obfuscated backlink is not something the Tech should publish.
+  -->
   <link rel="manifest" crossorigin="use-credentials" href="/manifest.webmanifest" />
   <link rel="alternate" type="application/feed+json" href="/feed.json" />
   <link rel="alternate" type="application/atom+xml" href="/atom.xml" />

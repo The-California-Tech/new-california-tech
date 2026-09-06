@@ -15,29 +15,27 @@ export const siteConfig: Site.Config = {
   cover: SiteCover
 };
 
+/**
+ * Extra <head> tags, injected via {@html} in src/lib/components/head.svelte.
+ *
+ * Analytics is handled by Vercel Analytics + Speed Insights, wired up in
+ * src/routes/+layout.ts. Both are first-party proxied on Vercel, so they need no
+ * entry here and no third-party origin in the CSP.
+ *
+ * Removed 2026-09: a Google Analytics tag for property G-LQ73GWF6XT, inherited
+ * verbatim from the upstream QWER theme (it sat under a "Replace the following
+ * with your own setting" comment, beside a commented-out Plausible endpoint
+ * pointing at svelte-qwer.vercel.app). It was almost certainly the theme
+ * author's property, not the Tech's. It never actually ran either: the tags were
+ * emitted as type="text/partytown" while Partytown was disabled, so browsers
+ * ignored them as an unknown script type.
+ *
+ * If the Tech ever wants GA, add it here as a normal <script> with the paper's
+ * own measurement ID, and add https://www.googletagmanager.com back to
+ * script-src in vercel.json.
+ */
 export const headConfig: Site.Head = {
-  custom: ({ dev }) =>
-    dev
-      ? [
-          // For Development Environment
-        ]
-      : [
-          // For Production Environment
-
-          // Replace the following with your own setting
-
-          // Plausible
-          // '<link rel="preconnect" href="https://plausible.kwchang0831.dev" />',
-          // '<script defer type="text/partytown" data-domain="svelte-qwer.vercel.app" src="https://plausible.kwchang0831.dev/js/plausible.js"></script>',
-          // Google tag (gtag.js)
-          `<script type="text/partytown" src="https://www.googletagmanager.com/gtag/js?id=G-LQ73GWF6XT"></script>`,
-          `<script type="text/partytown">
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-LQ73GWF6XT');
-          </script>`,
-        ],
+  custom: ({ dev }) => (dev ? [] : []),
 };
 
 export const dateConfig: Site.DateConfig = {

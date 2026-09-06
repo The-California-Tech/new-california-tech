@@ -8,7 +8,6 @@ import transformerVariantGroup from '@unocss/transformer-variant-group';
 import transformerCompileClass from '@unocss/transformer-compile-class';
 import { imagetools } from 'vite-imagetools';
 import path from 'path';
-// import { partytownVite } from '@qwik.dev/partytown/utils';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
@@ -19,11 +18,10 @@ const jsonQWERPkg = readFileSync(pathQWERPkg, 'utf8');
 const mainPkg = JSON.parse(jsonMainPkg);
 const qwerPkg = JSON.parse(jsonQWERPkg);
 
-const outputFolderPath = Object.keys(process.env).some((key) => key.includes('VERCEL'))
-  ? '.vercel/output/static'
-  : Object.keys(process.env).some((key) => key.includes('NETLIFY'))
-    ? 'build'
-    : 'static';
+// (Removed: `outputFolderPath`, which existed only to tell the Partytown Vite
+// plugin where to copy its runtime. Partytown was dropped in Sep 2026 — the
+// site's only third-party script was an inherited Google Analytics tag, and
+// with that gone Partytown had nothing left to move off the main thread.)
 
 /** @type {import('vite').UserConfig} */
 export default defineConfig({
@@ -68,9 +66,6 @@ export default defineConfig({
     }),
     imagetools(),
     sveltekit(),
-    // partytownVite({
-    //   dest: path.join(__dirname, outputFolderPath, '~partytown'),
-    // }),
   ],
   resolve: {
     alias: {
