@@ -10,7 +10,12 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     adapter: getAdapter(),
-    csp: { mode: 'auto' },
+    // CSP is set once, in vercel.json. `csp: { mode: 'auto' }` used to be here
+    // too, which emitted a second independent CSP header -- browsers enforce
+    // multiple CSP headers as an intersection, and auto mode's hashes/nonces
+    // cause 'unsafe-inline' to be ignored in the same directive, which would
+    // block the inline theme bootstrap in src/app.html. See the notes at the
+    // top of vercel.json.
     alias: {
       $QWER: './QWER',
       $lib: './src/lib',
