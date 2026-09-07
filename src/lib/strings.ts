@@ -6,7 +6,6 @@ export const strings = {
   LoadingPost: () => 'Loading Post...',
   NoPostFound: () => 'No Post Found.',
   LoadingGiscus: () => 'Loading Giscus...',
-  QWER: () => 'Built with SvelteKit',
   FirstPublishedAt: () => 'First published at',
   LastUpdatedAt: () => 'Last updated at',
   Updated: () => 'Updated: ',
@@ -26,7 +25,5 @@ type Strings = typeof strings;
 export type StringKeys = keyof Strings;
 
 export type StringFunctions = {
-  [K in keyof Strings]: ReturnType<Strings[K]> extends string
-    ? (...args: Parameters<Strings[K]>) => string
-    : never;
+  [K in keyof Strings]: ReturnType<Strings[K]> extends string ? (...args: Parameters<Strings[K]>) => string : never;
 };
