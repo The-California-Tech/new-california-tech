@@ -39,7 +39,7 @@
     out:fade|global={{ duration: 300 }}
     class="select-none {pictureClass ?? ''}">
     {#if UserConfig.BannerImage && UserConfig.BannerImage['format']}
-      {#each UserConfig.BannerImage['format'] as format, index}
+      {#each UserConfig.BannerImage['format'] as format, index (format)}
         <!--
           /@imagetools/... get transformed to ./_app/immutable/assets/...
           while causes problem to page that is 2+ level of depth

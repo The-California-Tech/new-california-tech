@@ -5,7 +5,7 @@
   import tippy from '$lib/actions/tippy';
   import { lastUpdatedStr, defaultPublishedStr, defaultUpdatedStr } from '$lib/utils/timeFormat';
   import AuthorAvatar from '$lib/components/image_avatar.svelte';
-    import { strings } from '$lib/strings';
+  import { strings } from '$lib/strings';
 
   let { data }: { data: Post.Post } = $props();
   // Show the coverInPost by default
@@ -18,26 +18,27 @@
       {new URL(data.slug, siteConfig.url).href}
     </a>
     <div class="p-author h-card flex items-center gap-1 pl-0 shrink-0">
-    {#if data.authors && data.authors.length > 0}
-      <AuthorAvatar
-        width="32px"
-        height="32px"
-        class="inline-block !w-8 !h-8 mr-1 object-cover aspect-1 rounded-full hover:rotate-[360deg] transition-transform duration-1000 ease-in-out" />
-      <span class="font-bold text-base">
-        <!-- TODO: replace with author index -->
-        {#each data.authors as author, i}
-          <a rel="author" href={siteConfig.url} class="u-url u-uid"> 
-            <span class="p-name">{author}</span>
-          </a>{#if i < data.authors.length - 1}<span>, </span>{/if}
-        {/each}
-      </span>
-    {/if}
+      {#if data.authors && data.authors.length > 0}
+        <AuthorAvatar
+          width="32px"
+          height="32px"
+          class="inline-block !w-8 !h-8 mr-1 object-cover aspect-1 rounded-full hover:rotate-[360deg] transition-transform duration-1000 ease-in-out" />
+        <span class="font-bold text-base">
+          <!-- TODO: replace with author index -->
+          {#each data.authors as author, i (author)}
+            <a rel="author" href={siteConfig.url} class="u-url u-uid">
+              <span class="p-name">{author}</span>
+            </a>
+            {#if i < data.authors.length - 1}<span>,</span>{/if}
+          {/each}
+        </span>
+      {/if}
     </div>
     <div class="flex flex-col gap1 text-right text-sm font-semibold op80">
       <time
         use:tippy
         class="dt-published"
-          aria-label="{strings.FirstPublishedAt()} {new Date(data.published).toLocaleString(
+        aria-label="{strings.FirstPublishedAt()} {new Date(data.published).toLocaleString(
           dateConfig.toPublishedString.locales,
           {
             year: 'numeric',
@@ -57,15 +58,18 @@
       </time>
       <span
         use:tippy
-          aria-label="{strings.LastUpdatedAt()} {new Date(data.updated).toLocaleString(dateConfig.toPublishedString.locales, {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: 'numeric',
-          timeZone: `${siteConfig.timeZone}`,
-        })}">
-          {strings.Updated()}
+        aria-label="{strings.LastUpdatedAt()} {new Date(data.updated).toLocaleString(
+          dateConfig.toPublishedString.locales,
+          {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            timeZone: `${siteConfig.timeZone}`,
+          },
+        )}">
+        {strings.Updated()}
         {lastUpdatedStr(data.updated)}
       </span>
     </div>

@@ -27,7 +27,7 @@
   <div class="divider"></div>
 
   <div class="flex gap-x-2 mx8 flex-wrap">
-    {#each formattedTags as tag}
+    {#each formattedTags as tag (tag)}
       <a use:tippy class="btn btn-ghost" rel="tag" href={tag.url} aria-label="{tag.category}: {tag.name}">
         #{tag.name}
       </a>

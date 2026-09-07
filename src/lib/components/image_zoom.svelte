@@ -39,13 +39,14 @@
   } = $props();
 
   const asset = $derived($assets.get(src));
-  const resolutions = $derived.by(() =>
-    UserConfig['ExtraResolutions'] &&
-    Object.entries(UserConfig.ExtraResolutions)
-      .filter((e) => asset && asset[e[0] as keyof Asset.Image])
-      .sort((a, b) => {
-        return +b[0] - +a[0];
-      }),
+  const resolutions = $derived.by(
+    () =>
+      UserConfig['ExtraResolutions'] &&
+      Object.entries(UserConfig.ExtraResolutions)
+        .filter((e) => asset && asset[e[0] as keyof Asset.Image])
+        .sort((a, b) => {
+          return +b[0] - +a[0];
+        }),
   );
 
   const getSrcset = function (res: string, index: number) {
@@ -103,8 +104,8 @@
   {#if asset}
     <picture class="block w-full">
       {#if resolutions}
-        {#each resolutions as [res, meta]}
-          {#each meta.format as format, index}
+        {#each resolutions as [res, meta] (res)}
+          {#each meta.format as format, index (format)}
             <!--
               /@imagetools/... get transformed to ./_app/immutable/assets/...
               while causes problem to page that is 2+ level of depth
@@ -119,7 +120,7 @@
         {/each}
       {/if}
       {#if UserConfig['ExtraResolutions'] && Object.keys(UserConfig['ExtraResolutions']).length}
-        {#each Object.entries(UserConfig['ExtraResolutions']) as format, index}
+        {#each Object.entries(UserConfig['ExtraResolutions']) as format, index (format[0])}
           <!--
             /@imagetools/... get transformed to ./_app/immutable/assets/...
             while causes problem to page that is 2+ level of depth
@@ -151,7 +152,7 @@
       draggable="false"
       itemprop="image"
       class="z-50 m-auto md:rounded-2xl md:shadow-xl {className ?? 'w-full h-auto max-w-full object-contain'}"
-        style="aspect-ratio: {derivedWidth} / {derivedHeight};"
+      style="aspect-ratio: {derivedWidth} / {derivedHeight};"
       {decoding}
       {loading}
       {src}

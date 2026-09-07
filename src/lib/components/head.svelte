@@ -23,13 +23,13 @@
   <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
   {#if headConfig.me}
-    {#each headConfig.me as href}
+    {#each headConfig.me as href (href)}
       <link rel="me" {href} />
     {/each}
   {/if}
 
   {#if headConfig.custom}
-    {#each headConfig.custom({ dev }) as tag}
+    {#each headConfig.custom({ dev }) as tag (tag)}
       {#if tag}{@html tag}{/if}
     {/each}
   {/if}

@@ -185,7 +185,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}>
-  {strings.TableOfContent()}
+        {strings.TableOfContent()}
       </span>
       <div
         role="button"
@@ -207,7 +207,7 @@
           onscroll={handleScroll}
           id="post-toc"
           class="my2 text-base font-semibold flex flex-col max-h-60vh cursor-grab overflow-hidden">
-          {#each toc as c}
+          {#each toc as c (c.slug)}
             <TocContent content={c} expanded />
           {/each}
         </ul>

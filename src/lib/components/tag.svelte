@@ -8,6 +8,9 @@
   const isActive = $derived($page.url.searchParams.get('tag') === data.name);
 
   function handleClick() {
+    // A throwaway copy used only to build the next query string inside this
+    // click handler; it is never read reactively, so it is not reactive state.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams($page.url.searchParams);
     const current = params.get('tag');
     if (current === data.name) {
