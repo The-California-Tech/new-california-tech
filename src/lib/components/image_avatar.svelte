@@ -3,8 +3,11 @@
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
 
-  let { class: className, width = '128px', height = '128px' }: { class?: string; width?: string; height?: string } =
-    $props();
+  let {
+    class: className,
+    width = '128px',
+    height = '128px',
+  }: { class?: string; width?: string; height?: string } = $props();
 
   let loaded = $state(false);
   onMount(() => {

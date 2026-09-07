@@ -7,7 +7,7 @@
 
 <header id="header" class="w-screen z-40" aria-label="Header Navigation">
   <Masthead />
-  
+
   <!-- Simple navigation bar -->
   <nav class="relative py-2 min-h-4rem max-h-16" aria-label="Main navigation">
     <DefaultNav />

@@ -9,9 +9,7 @@ const themeHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event, {
     transformPageChunk: ({ html }) => {
       // Apply theme to both data-theme attribute AND body class
-      return html
-        .replace('data-theme="light"', `data-theme="${theme}"`)
-        .replace('<body', `<body class="${theme}"`);
+      return html.replace('data-theme="light"', `data-theme="${theme}"`).replace('<body', `<body class="${theme}"`);
     },
   });
 
@@ -21,5 +19,5 @@ const themeHandler: Handle = async ({ event, resolve }) => {
 export const handle = sequence(themeHandler, async ({ event, resolve }) =>
   resolve(event, {
     transformPageChunk: ({ html }) => html.replace('<html lang="en">', `<html lang="${siteConfig.lang ?? 'en'}">`),
-  })
+  }),
 );

@@ -1,5 +1,4 @@
 export namespace Site {
-
   export interface Config {
     /** site url  without tailing slash. for example: `https://example.com` */
     url: string;
@@ -10,7 +9,7 @@ export namespace Site {
     /** site subtitle. */
     subtitle?: string;
     /** site lang. `<html lang={site.lang}>` */
-  lang: string;
+    lang: string;
 
     timeZone: string;
 

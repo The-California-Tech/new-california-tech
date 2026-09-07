@@ -57,8 +57,8 @@ const config = {
       $static: './static',
     },
     prerender: {
-      entries: ['*']
-    }
+      entries: ['*'],
+    },
   },
 };
 

@@ -64,7 +64,7 @@
       author: [
         {
           '@type': 'Person',
-          name: primaryAuthor
+          name: primaryAuthor,
         },
       ],
     }) + '<'

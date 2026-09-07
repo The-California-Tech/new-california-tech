@@ -7,5 +7,5 @@ import type { RequestEvent } from '@sveltejs/kit';
  * Authenticates requests via NOTION_WEBHOOK_SECRET.
  */
 export async function POST(event: RequestEvent) {
-	return handleNotionWebhookRequest(symbiontSync, event);
+  return handleNotionWebhookRequest(symbiontSync, event);
 }

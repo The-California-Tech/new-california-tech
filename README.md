@@ -5,6 +5,7 @@ A SvelteKit-powered site for The California Tech, using Notion/Supabase sync via
 ## Development
 
 Prerequisites:
+
 - Node.js 18+
 - pnpm
 
@@ -34,6 +35,7 @@ This repository is configured for deployment on Vercel with `@sveltejs/adapter-v
 ## Credits
 
 This project is based on and includes components/tooling from:
+
 - QWER by kwchang0831: https://github.com/kwchang0831/svelte-QWER
 
 Please review QWER's repository for upstream documentation and history.

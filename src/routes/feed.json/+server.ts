@@ -5,7 +5,7 @@ import { symbiont } from '$lib/symbiont';
 const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<any[]> => {
   try {
     const postsFromDb = await symbiont.getAllPages({ fetch, limit: 100 });
-      
+
     return postsFromDb
       .filter((post) => {
         // Filter out unlisted posts (if that field exists)
@@ -21,12 +21,12 @@ const fetchPosts = async (fetch: typeof globalThis.fetch): Promise<any[]> => {
         date_modified: post.updated_at ?? post.publish_at ?? new Date().toISOString(),
         content_text: post.content,
         content_html: post.content, // Can be rendered as HTML if needed
-        tags: Array.isArray(post.tags) ? post.tags : []
+        tags: Array.isArray(post.tags) ? post.tags : [],
       }));
   } catch (error) {
     console.error('[feed.json] Error fetching posts from database:', error);
   }
-  
+
   // Fallback to empty array if database not available
   return [];
 };
@@ -38,7 +38,7 @@ const render = async (fetch: typeof globalThis.fetch) => {
     github: siteConfig.url,
     avatar: `${new URL('favicon.png', siteConfig.url).href}`,
   };
-  
+
   return {
     version: 'https://jsonfeed.org/version/1.1',
     title: siteConfig.title,
@@ -55,7 +55,7 @@ const render = async (fetch: typeof globalThis.fetch) => {
       },
     ],
     language: siteConfig.lang ?? 'en',
-    items
+    items,
   };
 };
 

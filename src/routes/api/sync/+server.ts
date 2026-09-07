@@ -7,5 +7,5 @@ import type { RequestEvent } from '@sveltejs/kit';
  * Authenticates with CRON_SECRET and syncs content from Notion to Supabase
  */
 export async function GET(event: RequestEvent) {
-	return handlePollBlogRequest(symbiontSync, event);
+  return handlePollBlogRequest(symbiontSync, event);
 }

@@ -16,7 +16,7 @@ const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
   const author = siteConfig.author ?? {
     name: siteConfig.title,
   };
-  
+
   return `<?xml version='1.0' encoding='utf-8'?>
 <feed xmlns="http://www.w3.org/2005/Atom" ${siteConfig.lang ? `xml:lang="${siteConfig.lang}"` : ''}>
 <id>${siteConfig.url}</id>
@@ -46,14 +46,18 @@ ${posts
     <updated>${new Date(post.updated_at ?? post.publish_at ?? new Date()).toJSON()}</updated>
     <summary type="html"><![CDATA[${post.content?.substring(0, 200) ?? ''}]]></summary>
     <content type="html"><![CDATA[${post.content ?? ''}]]></content>
-    ${Array.isArray(post.tags) ? post.tags
-      .map((tag: any) => {
-        if (typeof tag === 'string')
-          return `<category term="${tag}" scheme="${new URL(`?tags=${encodeURI(tag)}`, siteConfig.url).href}" />`;
-        return '';
-      })
-      .filter((t: any) => t)
-      .join('\n') : ''}
+    ${
+      Array.isArray(post.tags)
+        ? post.tags
+            .map((tag: any) => {
+              if (typeof tag === 'string')
+                return `<category term="${tag}" scheme="${new URL(`?tags=${encodeURI(tag)}`, siteConfig.url).href}" />`;
+              return '';
+            })
+            .filter((t: any) => t)
+            .join('\n')
+        : ''
+    }
     </entry>`;
   })
   .join('\n')}

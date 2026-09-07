@@ -15,7 +15,7 @@
     itemtype="https://schema.org/BlogPosting"
     class="pt-[4rem] relative flex flex-col items-center gap-4 justify-center">
     <h1 class="text-6xl">{$page.status ?? '404'}</h1>
-  <p class="text-lg">{$page.status === 404 ? strings.Page404NotFound() : $page.error?.message}</p>
+    <p class="text-lg">{$page.status === 404 ? strings.Page404NotFound() : $page.error?.message}</p>
     <img
       class:hidden={$page.status !== 404}
       draggable="false"
