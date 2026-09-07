@@ -7,10 +7,10 @@ opinionated framework that owns it.
 
 ## Read these two files first
 
-| File | Owner | What's in it |
-|---|---|---|
+| File                           | Owner            | What's in it                                                                                                                                                       |
+| ------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `schemas/10_symbiont_core.sql` | **symbiont-cms** | `pages`, `image_metadata`, `set_updated_at()`, `list_storage_objects_recursive()`. The library reads and writes these directly. Treat as the library's, not yours. |
-| `schemas/20_tech_feed.sql` | **your app** | Everything built on top: the `search_fts` column, tag listing, and the feed functions. symbiont knows nothing about any of it. |
+| `schemas/20_tech_feed.sql`     | **your app**     | Everything built on top: the `search_fts` column, tag listing, and the feed functions. symbiont knows nothing about any of it.                                     |
 
 The rule of thumb: **if symbiont-cms would break when you change it, it belongs in
 `10_`.** Everything else is yours.
@@ -21,8 +21,8 @@ because the order is load-bearing — `20_` runs `ALTER TABLE` against the table
 
 ### The relationship to aim for
 
-`search_fts` is the clearest illustration. It's a column *your app adds to the
-library's table*, declared in `20_tech_feed.sql` as an `ALTER TABLE`. symbiont
+`search_fts` is the clearest illustration. It's a column _your app adds to the
+library's table_, declared in `20_tech_feed.sql` as an `ALTER TABLE`. symbiont
 doesn't know it exists and doesn't need to. Extend, don't fork.
 
 Today `10_symbiont_core.sql` has to live here because **symbiont-cms ships no
@@ -78,14 +78,14 @@ Two corrections to Supabase's published snippet, both found by running it:
 - **It targets the wrong role.** The snippet says `for role postgres`, but on a
   local stack the default ACLs are registered against `supabase_admin`
   (`anon=arwdDxtm/supabase_admin`). Default privileges are keyed to the
-  *creating* role, so revoking them for `postgres` silently does nothing. The
+  _creating_ role, so revoking them for `postgres` silently does nothing. The
   migration discovers whichever roles hold them instead of assuming.
 - **Its privilege list is incomplete.** It revokes select/insert/update/delete.
   The real grant is `arwdDxtm`, which also includes `D` (TRUNCATE — the one that
   bypasses RLS), `x` (REFERENCES), `t` (TRIGGER) and `m` (MAINTAIN). Use
   `revoke all`.
 
-**Caveat found the hard way:** revoking the *function* default did not reliably
+**Caveat found the hard way:** revoking the _function_ default did not reliably
 take. `pg_default_acl` showed PUBLIC's `EXECUTE` removed for role `postgres`, yet
 a freshly created function was still executable by `anon`. Also, `postgres`
 cannot alter `supabase_admin`'s defaults (insufficient privilege), so only the
@@ -96,7 +96,7 @@ the resulting RPC surface is exactly the intended set.
 
 Two things to know if you copy this pattern:
 
-1. **The statements are duplicated** — in the migration *and* at the top of
+1. **The statements are duplicated** — in the migration _and_ at the top of
    `schemas/10_symbiont_core.sql`. Both are required. `db diff` builds one
    database from the migrations and another from the schema files, then compares
    object privileges; if only one side has the defaults revoked, every table's
@@ -143,7 +143,7 @@ owner — bypassing the policy that hides unpublished articles, with no error.
 This repo has **no views** for exactly that reason. `public.homepage` used to do
 the feed's job and was dropped in favour of `list_homepage_posts()`. Functions
 don't have the problem: `SECURITY INVOKER` is their default, so escalating one to
-`SECURITY DEFINER` means *adding* a visible keyword rather than silently losing
+`SECURITY DEFINER` means _adding_ a visible keyword rather than silently losing
 one.
 
 If you add a view here, assume every future `db diff` will try to break it.
