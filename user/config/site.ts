@@ -1,7 +1,23 @@
 import type { Site } from '$lib/types/site';
 import type { DD } from '$lib/types/dd';
 
-import SiteCover from '$assets/qwer.webp';
+/**
+ * The social-share card: og:image and twitter:image (see post_SEO.svelte).
+ *
+ * This was `$assets/qwer.webp` -- the upstream theme's own logo -- so every Tech
+ * link shared to Slack, iMessage, Discord or Twitter previewed with another
+ * project's branding.
+ *
+ * og-card.png is generated from user/public/tech-eclipse.webp by
+ * `pnpm run make:og-card`. It is generated rather than used directly because
+ * the source art is 3151x460 (6.85:1) and social platforms render cards at
+ * ~1.91:1 and center-crop, which would have shown a narrow sliver of it. The
+ * script pads it onto a 1200x630 canvas so the whole banner stays visible.
+ *
+ * The output is committed, so builds and CI do not depend on sharp. Re-run the
+ * script only if the source art or background changes.
+ */
+import SiteCover from '$assets/og-card.png';
 
 export const siteConfig: Site.Config = {
   url: 'https://tech.caltech.edu',
@@ -12,7 +28,7 @@ export const siteConfig: Site.Config = {
   timeZone: 'US/Pacific',
   since: 2022,
   indexLayout: 'posts-only', // Options: 'default', 'posts-only', 'profile-only', 'custom'
-  cover: SiteCover
+  cover: SiteCover,
 };
 
 /**
@@ -77,7 +93,7 @@ export const navConfig: Array<DD.Nav | DD.Link> = [
       {
         name: 'Feed',
         url: '/atom.xml',
-      }
+      },
     ],
   },
   {
@@ -88,7 +104,7 @@ export const navConfig: Array<DD.Nav | DD.Link> = [
     name: 'Contact',
     url: 'mailto:tech@caltech.edu',
     rel: 'external',
-  }
+  },
 ];
 
 export const mobilenavConfig: DD.Nav = {

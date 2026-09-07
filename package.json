@@ -35,10 +35,12 @@
     "symbiont:unlink": "bash scripts/symbiont-link.sh unlink",
     "symbiont:status": "bash scripts/symbiont-link.sh status",
     "backfill:image-sizes": "tsx scripts/imageSizeBackfill.ts",
-    "symbiont:verify-tag": "bash scripts/verify-symbiont-tag.sh"
+    "symbiont:verify-tag": "bash scripts/verify-symbiont-tag.sh",
+    "make:og-card": "tsx scripts/make-og-card.ts"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.2",
+    "@eslint/js": "10.0.1",
     "@iconify-json/akar-icons": "1.2.7",
     "@iconify-json/bxs": "1.2.3",
     "@iconify-json/carbon": "1.2.26",
