@@ -1,8 +1,5 @@
 import adapterNode from '@sveltejs/adapter-node';
-import adapterStatic from '@sveltejs/adapter-static';
 import adapterVercel from '@sveltejs/adapter-vercel';
-import adapterNetlify from '@sveltejs/adapter-netlify';
-import adapterCloudflare from '@sveltejs/adapter-cloudflare';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -65,16 +62,30 @@ const config = {
   },
 };
 
+/**
+ * Adapter selection.
+ *
+ * This used to fall through to `adapter-static` for any non-Vercel build, which
+ * could never work: every route in this app is dynamic (`prerender = false`),
+ * and adapter-static hard-errors on dynamic routes. It also ignored the
+ * `ADAPTER=node` that `build:sveltekit` sets, so that variable was a no-op.
+ *
+ * Nobody noticed because Vercel takes the first branch and `pnpm build` was
+ * never run locally. CI running it is what surfaced this.
+ *
+ * Now: Vercel in its own build environment, adapter-node everywhere else. Both
+ * produce a working server build. There is no static option because this site
+ * cannot be static -- the feed, article pages and API routes all need a server.
+ *
+ * The VERCEL check stays as a substring scan rather than `process.env.VERCEL`
+ * because that is the form that has been deploying successfully; not worth
+ * changing the one path that works in order to tidy it.
+ */
 function getAdapter() {
   if (Object.keys(process.env).some((key) => key.includes('VERCEL'))) {
     return adapterVercel();
-  } else {
-    return adapterStatic({
-          pages: 'build',
-          assets: 'build',
-          fallback: undefined,
-        });
   }
+  return adapterNode();
 }
 
 export default config;

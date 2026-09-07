@@ -9,7 +9,7 @@
     "dev:QWER": "node --no-warnings QWER watch",
     "dev:watch": "npm-run-all -p -r dev:QWER dev:sveltekit",
     "dev": "npm-run-all -s build:QWER dev:watch",
-    "build:sveltekit": "cross-env ADAPTER=node vite build",
+    "build:sveltekit": "vite build",
     "build:QWER_Without_Meta": "node --no-warnings QWER buildWithoutMeta",
     "build:QWER": "node --no-warnings QWER build",
     "build": "npm-run-all -s build:QWER build:sveltekit",
@@ -48,10 +48,7 @@
     "@iconify-json/mdi": "1.2.3",
     "@iconify-json/tabler": "1.2.38",
     "@iconify-json/vscode-icons": "1.2.76",
-    "@sveltejs/adapter-cloudflare": "7.2.9",
-    "@sveltejs/adapter-netlify": "6.0.4",
     "@sveltejs/adapter-node": "5.5.7",
-    "@sveltejs/adapter-static": "3.0.10",
     "@sveltejs/adapter-vercel": "6.3.4",
     "@sveltejs/kit": "2.70.3",
     "@sveltejs/vite-plugin-svelte": "7.3.0",
@@ -118,7 +115,7 @@
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "symbiont-cms": "github:guutz/symbiont-cms#v1.1.8"
+    "symbiont-cms": "github:guutz/symbiont-cms#v1.1.9"
   },
   "packageManager": "pnpm@11.22.0"
 }
