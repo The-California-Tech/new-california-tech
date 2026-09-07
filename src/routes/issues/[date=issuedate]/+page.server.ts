@@ -1,101 +1,110 @@
 import { redirect, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { symbiont } from '$lib/symbiont';
-import { fetchFeedPage, FEED_BATCH_SIZE } from '$lib/utils/feed-query';
-import { parsePositiveInt } from '$lib/utils/post-pagination';
+import { fetchIssuePosts } from '$lib/utils/feed-query';
+import { buildIssueCards, formatIssueLabel, resolveIssue } from '$lib/utils/issues';
 
 export const config = {
-	maxage: 60,
-	revalidate: 60
+  maxage: 60,
+  revalidate: 60,
 };
 
 export const prerender = false;
 
 /**
- * `nearest_issue_date` is newer than the generated Database types shipped by
- * symbiont-cms. See the same note in feed-query.ts.
+ * A single issue of the paper. Bounded on purpose.
+ *
+ * This route used to call fetchFeedPage({ beforeDate }), which returns the
+ * named issue *and every older issue*, then infinite-scrolled further back
+ * while a scroll listener rewrote the address bar to whichever issue happened
+ * to be under the viewport. The URL named one issue and the page showed the
+ * archive from that point on, which is why it needed the rewriting at all --
+ * and why `/`, /issues/2026-09-04 and /issues/2026-08-28 all served heavily
+ * overlapping content with no canonical signal.
+ *
+ * Now it shows exactly one issue, with deliberate prev/next navigation.
+ * Endless scroll-back still lives on `/`, where the URL does not claim to be
+ * about any particular date.
  */
-type RpcCapable = {
-	rpc: (
-		fn: string,
-		args: Record<string, unknown>
-	) => PromiseLike<{ data: string | null; error: { message: string } | null }>;
-};
-
 export const load: PageServerLoad = async ({ fetch, params, url, cookies }) => {
-	const theme = cookies.get('theme') || 'light';
-	const requestedIssueDate = params.date;
+  const theme = cookies.get('theme') || 'light';
+  const requestedIssueDate = params.date;
 
-	const emptyState = {
-		posts: [],
-		query: '',
-		tag: '',
-		hasMore: false,
-		shownCount: 0,
-		issueCursor: 0,
-		nextCount: FEED_BATCH_SIZE,
-		batchSize: FEED_BATCH_SIZE,
-		totalCount: 0,
-		issueDate: requestedIssueDate,
-		theme
-	};
+  const emptyState = {
+    posts: [],
+    query: '',
+    tag: '',
+    issueDate: requestedIssueDate,
+    issueLabel: formatIssueLabel(requestedIssueDate),
+    hasPdf: false,
+    cover: undefined as string | undefined,
+    older: null,
+    newer: null,
+    position: 0,
+    total: 0,
+    /** True when the filter matched nothing *in this issue*. */
+    filteredEmpty: false,
+    theme,
+  };
 
-	try {
-		const query = url.searchParams.get('q')?.toLowerCase() || '';
-		const tag = url.searchParams.get('tag') || '';
-		const requestedCount = parsePositiveInt(url.searchParams.get('count'), FEED_BATCH_SIZE);
+  try {
+    const query = url.searchParams.get('q')?.toLowerCase() || '';
+    const tag = url.searchParams.get('tag') || '';
 
-		const client = symbiont.getSSRClient(fetch);
+    // The union of website-inferred and archive-PDF issues. Resolving against
+    // this rather than the nearest_issue_date RPC is what makes PDF-only
+    // archive issues reachable -- see resolveIssue() for the full story.
+    const issues = await buildIssueCards(fetch);
+    const resolved = resolveIssue(issues, requestedIssueDate);
 
-		// Snap to a real issue date. Previously this fetched up to 1000 rows just
-		// to build the distinct-date list; Postgres can answer it directly.
-		const { data: resolvedIssueDate, error: resolveError } = await (
-			client as unknown as RpcCapable
-		).rpc('nearest_issue_date', { p_target: requestedIssueDate });
+    if (!resolved.current) {
+      return { ...emptyState, query, tag };
+    }
 
-		if (resolveError) {
-			throw new Error(`nearest_issue_date failed: ${resolveError.message}`);
-		}
+    if (resolved.current.date !== requestedIssueDate) {
+      const redirectTarget = new URL(`/issues/${resolved.current.date}`, url.origin);
+      redirectTarget.search = url.search;
+      redirect(302, `${redirectTarget.pathname}${redirectTarget.search}`);
+    }
 
-		if (!resolvedIssueDate) {
-			return { ...emptyState, query, tag };
-		}
+    const issueDate = resolved.current.date;
 
-		if (resolvedIssueDate !== requestedIssueDate) {
-			const redirectTarget = new URL(`/issues/${resolvedIssueDate}`, url.origin);
-			redirectTarget.search = url.search;
-			redirect(302, `${redirectTarget.pathname}${redirectTarget.search}`);
-		}
+    // A PDF-only issue has no website articles at all, so skip the query
+    // entirely rather than asking for an issue that cannot come back.
+    const issue = resolved.current.hasWebsite
+      ? await fetchIssuePosts(symbiont.getSSRClient(fetch), { issueDate, query, tag })
+      : { posts: [], issueDate: null, totalIssues: 0, totalPosts: 0 };
 
-		const page = await fetchFeedPage(client, {
-			query,
-			tag,
-			beforeDate: resolvedIssueDate,
-			targetCount: requestedCount
-		});
+    // Under a filter, list_homepage_posts falls through to the next older issue
+    // that has a match. That would silently show the wrong issue's articles, so
+    // treat a mismatch as "nothing here matches" instead.
+    const isThisIssue = issue.issueDate === issueDate;
+    const posts = isThisIssue ? issue.posts : [];
 
-		return {
-			posts: page.posts,
-			query,
-			tag,
-			hasMore: page.hasMore,
-			shownCount: page.posts.length,
-			issueCursor: page.issueRank,
-			nextCount: page.posts.length + FEED_BATCH_SIZE,
-			batchSize: FEED_BATCH_SIZE,
-			totalCount: page.totalPosts,
-			issueDate: resolvedIssueDate,
-			theme
-		};
-	} catch (error) {
-		// Let SvelteKit's redirect signal through instead of swallowing it as an
-		// error. The old hand-rolled `status === 302` check missed the `location`
-		// property and only worked by luck.
-		if (isRedirect(error)) {
-			throw error;
-		}
+    return {
+      posts,
+      query,
+      tag,
+      issueDate,
+      issueLabel: resolved.current.label || formatIssueLabel(issueDate),
+      hasPdf: resolved.current.hasPdf,
+      cover: resolved.current.cover,
+      older: resolved.older,
+      newer: resolved.newer,
+      position: resolved.position,
+      total: resolved.total,
+      filteredEmpty: Boolean((query || tag) && resolved.current.hasWebsite && posts.length === 0),
+      theme,
+    };
+  } catch (error) {
+    // Let SvelteKit's redirect signal through instead of swallowing it as an
+    // error. The old hand-rolled `status === 302` check missed the `location`
+    // property and only worked by luck.
+    if (isRedirect(error)) {
+      throw error;
+    }
 
-		console.error('[issues/[date]/+page.server.ts] Error loading issue page:', error);
-		return emptyState;
-	}
+    console.error('[issues/[date]/+page.server.ts] Error loading issue page:', error);
+    return emptyState;
+  }
 };
