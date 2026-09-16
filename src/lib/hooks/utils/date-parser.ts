@@ -18,27 +18,97 @@
  * parseTechIssueDate("January 20, 2023")
  * // Returns: "2023-01-20T14:00:00.000Z"
  */
+/**
+ * Accepted Issue formats. Deliberately strict -- see parseTechIssueDate.
+ *   "January 20, 2023" / "Jan 20 2023"
+ *   "2023-01-20"
+ *   "1/20/2023"
+ */
+const MONTH_NAMES = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+
+const NAMED_MONTH = /^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/;
+const ISO_DATE = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+const US_SLASHED = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+
+/** Build the 7 AM PST instant for a Y/M/D, or null if it is not a real date. */
+function pacificMorning(year: number, month: number, day: number): string | null {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const iso = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const date = new Date(`${iso}T07:00:00-07:00`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  // Catches overflow like February 30, which Date silently rolls forward into
+  // March rather than rejecting.
+  const rolled = new Date(`${iso}T12:00:00Z`);
+  if (rolled.getUTCDate() !== day || rolled.getUTCMonth() + 1 !== month) return null;
+
+  return date.toISOString();
+}
+
 export function parseTechIssueDate(issueString: string): string | null {
   if (!issueString || typeof issueString !== 'string') {
     return null;
   }
 
-  try {
-    // Append time and timezone to make parsing consistent
-    // 07:00:00 GMT-0700 = 7 AM PST
-    const dateString = `${issueString} 07:00:00 GMT-0700`;
-    const date = new Date(dateString);
+  const trimmed = issueString.trim();
 
-    if (isNaN(date.getTime())) {
-      console.warn(`[tech.caltech.edu] Invalid date format in Issue property: "${issueString}"`);
+  /*
+   * Parsed by explicit pattern rather than `new Date(...)`.
+   *
+   * Date's fallback parsing is implementation-defined for non-ISO input and
+   * does not fail on partial dates -- it invents the missing parts, which for
+   * an archive is worse than refusing:
+   *
+   *   "March 2023" -> 2023-03-01     (a day that was never an issue date)
+   *   "Fall 2026"  -> 2026-01-01
+   *   "Issue 5"    -> 2001-05-01     (read as month 5 of year 2001)
+   *
+   * None of those return null, so nothing downstream could tell they were
+   * wrong; the article simply filed itself under a date the paper never
+   * published. Rejecting is the safe failure: publish:check then holds the
+   * article back and logs publish_blocked_unusable_date, which is visible,
+   * instead of quietly corrupting the archive.
+   */
+  let year: number | undefined;
+  let month: number | undefined;
+  let day: number | undefined;
+
+  const named = NAMED_MONTH.exec(trimmed);
+  const iso = ISO_DATE.exec(trimmed);
+  const slashed = US_SLASHED.exec(trimmed);
+
+  if (named) {
+    const name = named[1]!.toLowerCase();
+    const index = MONTH_NAMES.findIndex((m) => m === name || (name.length >= 3 && m.startsWith(name)));
+    if (index === -1) {
+      console.warn(`[tech.caltech.edu] Unrecognised month in Issue property: "${issueString}"`);
       return null;
     }
-
-    return date.toISOString();
-  } catch (error) {
-    console.error(`[tech.caltech.edu] Error parsing Issue property "${issueString}":`, error);
+    month = index + 1;
+    day = Number(named[2]);
+    year = Number(named[3]);
+  } else if (iso) {
+    year = Number(iso[1]);
+    month = Number(iso[2]);
+    day = Number(iso[3]);
+  } else if (slashed) {
+    month = Number(slashed[1]);
+    day = Number(slashed[2]);
+    year = Number(slashed[3]);
+  } else {
+    console.warn(`[tech.caltech.edu] Invalid date format in Issue property: "${issueString}"`);
     return null;
   }
+
+  const parsed = pacificMorning(year, month, day);
+  if (!parsed) {
+    console.warn(`[tech.caltech.edu] Not a real calendar date in Issue property: "${issueString}"`);
+  }
+  return parsed;
 }
 
 /**

@@ -219,6 +219,50 @@ export const excludeAndDeletePrintOnlyHook: Hook<boolean> = {
 };
 
 /**
+ * The article's publish date, or null if it does not have a usable one.
+ *
+ * SHARED BY publish:check AND publish:date ON PURPOSE. Those two hooks used to
+ * ask different questions -- check asked whether the property was *present*,
+ * date asked whether it *parsed* -- and the gap between them silently re-dated
+ * articles to today:
+ *
+ *   1. Issue is set to something that is not a parseable date (and there is no
+ *      Website Publish Date).
+ *   2. publish:check sees a truthy `issueProperty` and returns true.
+ *   3. publish:date cannot parse it, finds no fallback, returns null.
+ *   4. `publish:date` composes with FirstWins, so null abstains rather than
+ *      meaning "definitively none" -- and symbiont's default hook then returns
+ *      ctx.page.last_edited_time.
+ *   5. For a page being edited right now, that is today.
+ *
+ * Worse, it is not a one-off: publish_at is rewritten on every sync, so such an
+ * article keeps moving to whatever day it was last touched.
+ *
+ * Note that `priority: 'override'` does not prevent this. In the registry it is
+ * an alias of 'before' (both map to weight 40), so it changes ordering only --
+ * the default still runs when this returns null. The only reliable way to keep
+ * the default from firing is to not be publishable in the first place, which is
+ * what routing both hooks through this function achieves: an article without a
+ * resolvable date fails publish:check, and page-transformer then skips
+ * publish:date entirely, leaving publish_at null.
+ */
+export function resolveTechPublishDate(ctx: HookContext): string | null {
+  const issueProperty = (ctx.page.properties.Issue as any)?.select?.name;
+  if (issueProperty) {
+    const parsed = parseTechIssueDate(issueProperty);
+    if (parsed) return parsed;
+  }
+
+  const websiteDate = (ctx.page.properties['Website Publish Date'] as any)?.date?.start;
+  if (websiteDate) {
+    const parsed = parseWebsitePublishDate(websiteDate);
+    if (parsed) return parsed;
+  }
+
+  return null;
+}
+
+/**
  * Check if page should be published based on Status property.
  * Only pages with Status = "Published" are public.
  * Print Only and Advertisement articles are excluded via page:should-sync.
@@ -237,19 +281,35 @@ export const publishCheckHook: Hook<boolean> = {
 
     const isPublished = status?.status?.name === 'Published';
     const hasPrintOnlyTag = isPrintOnlyOrAdvertisement(ctx);
-    const websiteDate = (ctx.page.properties['Website Publish Date'] as any)?.date?.start;
-    const issueProperty = (ctx.page.properties.Issue as any)?.select?.name;
 
-    // make sure there's a date specified somewhere (either Issue or Website Publish Date) before allowing publish
-    const shouldPublish = isPublished && !hasPrintOnlyTag && (websiteDate || issueProperty);
+    // A *resolvable* date, not merely a present property -- see
+    // resolveTechPublishDate for why the difference matters.
+    const publishDate = resolveTechPublishDate(ctx);
+    const shouldPublish = isPublished && !hasPrintOnlyTag && publishDate !== null;
 
     if (!shouldPublish) {
-      ctx.logger.debug({
-        event: 'publish_check_failed',
-        pageId: ctx.page.id,
-        status: status?.status?.name,
-        hasPrintOnlyTag,
-      });
+      const issueProperty = (ctx.page.properties.Issue as any)?.select?.name;
+      const websiteDate = (ctx.page.properties['Website Publish Date'] as any)?.date?.start;
+
+      // An article marked Published but held back only by an unusable date is
+      // an editor-facing problem, not a routine skip: it looks published in
+      // Notion and is invisible on the site. Log it loudly enough to find.
+      if (isPublished && !hasPrintOnlyTag) {
+        ctx.logger.warn({
+          event: 'publish_blocked_unusable_date',
+          pageId: ctx.page.id,
+          issueProperty,
+          websiteDate,
+          reason: issueProperty || websiteDate ? 'date present but unparseable' : 'no date set',
+        });
+      } else {
+        ctx.logger.debug({
+          event: 'publish_check_failed',
+          pageId: ctx.page.id,
+          status: status?.status?.name,
+          hasPrintOnlyTag,
+        });
+      }
     }
 
     return shouldPublish;
@@ -350,42 +410,28 @@ export const publishDateHook: Hook<string | Date> = {
   event: 'publish:date',
   priority: 'override',
   fn: async (ctx: HookContext) => {
-    const issueProperty = (ctx.page.properties.Issue as any)?.select?.name;
+    const publishDate = resolveTechPublishDate(ctx);
 
-    // Try Issue property first
-    if (issueProperty) {
-      const parsed = parseTechIssueDate(issueProperty);
-      if (parsed) {
-        ctx.logger.debug({
-          event: 'publish_date_from_issue',
-          pageId: ctx.page.id,
-          issue: issueProperty,
-          date: parsed,
-        });
-        return parsed;
-      }
+    if (publishDate) {
+      ctx.logger.debug({
+        event: 'publish_date_resolved',
+        pageId: ctx.page.id,
+        date: publishDate,
+      });
+      return publishDate;
     }
 
-    // Try Website Publish Date property
-    const websiteDate = (ctx.page.properties['Website Publish Date'] as any)?.date?.start;
-    if (websiteDate) {
-      const parsed = parseWebsitePublishDate(websiteDate);
-      if (parsed) {
-        ctx.logger.debug({
-          event: 'publish_date_from_website_property',
-          pageId: ctx.page.id,
-          date: parsed,
-        });
-        return parsed;
-      }
-    }
-
-    // Neither property has a date — definitively no publish date.
-    ctx.logger.debug({
-      event: 'publish_date_not_found',
+    // Should be unreachable: page-transformer only runs publish:date when
+    // publish:check passed, and publish:check now requires this same function
+    // to return a date. If it ever fires, the two have drifted apart again --
+    // and the consequence is silent, because returning null here hands the
+    // decision to symbiont's default hook, which stamps last_edited_time.
+    ctx.logger.error({
+      event: 'publish_date_unresolved_after_check_passed',
       pageId: ctx.page.id,
-      issueProperty,
-      websiteDate,
+      issueProperty: (ctx.page.properties.Issue as any)?.select?.name,
+      websiteDate: (ctx.page.properties['Website Publish Date'] as any)?.date?.start,
+      consequence: 'symbiont default will set publish_at to last_edited_time (today)',
     });
     return null;
   },
