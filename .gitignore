@@ -17,3 +17,8 @@ __unconfig_vite.config.js
 # Local Netlify folder
 .netlify
 *.code-workspace
+
+# Scratch output from `pnpm run import:gdoc` -- fetched Doc content and its
+# images, staged on the way into Notion. Regenerable, and not the source of
+# truth for anything.
+gdoc-dump/

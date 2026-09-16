@@ -44,7 +44,6 @@ jobs:
 
       - name: Lint
         run: pnpm lint
-        continue-on-error: true # advisory for now; drop this once lint is clean
 
       - name: Build
         run: pnpm build
