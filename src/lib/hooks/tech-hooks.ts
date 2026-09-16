@@ -72,26 +72,96 @@ function countWordsFromMarkdown(markdown: string): number {
 }
 
 /**
- * Render the first page of a remote PDF as a PNG buffer.
- * Uses pdf-to-img which runs fully in-process (no external tools needed).
+ * Rendering resolution. PDFium's scale 1 is 72 DPI, which for a broadsheet page
+ * is far too coarse to read a masthead; 2 gives 144 DPI and is then downscaled,
+ * so the result is sharp without keeping a huge bitmap around.
  */
-async function generateThumbnailBuffer(pdfUrl: string): Promise<Buffer> {
-  // Lazy-load pdf-to-img so SSR route loads do not require pdfjs/canvas polyfills.
-  const { pdf } = await import('pdf-to-img');
+const THUMBNAIL_RENDER_SCALE = 2;
 
-  // Fetch and convert to data URL (required by pdf-to-img)
+/** Long edge of the stored cover. Cards display at roughly 300-500 CSS px. */
+const THUMBNAIL_MAX_WIDTH = 1000;
+
+/**
+ * Render the first page of a remote PDF as a PNG buffer.
+ *
+ * WHY PDFIUM RATHER THAN pdf-to-img/pdfjs
+ *   pdf-to-img depends only on pdfjs-dist -- @napi-rs/canvas is not even an
+ *   optional dependency of either -- so pdfjs reaches for it at runtime and the
+ *   lambda dies with:
+ *     Cannot load "@napi-rs/canvas" package
+ *     Cannot polyfill `DOMMatrix`, rendering may be broken.
+ *     Cannot polyfill `Path2D`, rendering may be broken.
+ *   Installing it means shipping a platform-specific native binary and getting
+ *   Vercel's file tracing to carry the right one into /var/task. PDFium is
+ *   compiled to WebAssembly and ships inside the package, so there is no native
+ *   module to resolve and nothing platform-specific to trace.
+ *
+ * WHY THE OLD THUMBNAILS HAD MANGLED TEXT BACKGROUNDS
+ *   A PDF page has no background of its own -- "paper white" is implicit, and
+ *   the renderer supplies it. pdfjs without its canvas polyfills rasterised
+ *   onto transparency, so anything the page did not explicitly paint stayed
+ *   alpha-0, and text drawn with knockout/transparency groups composited
+ *   against nothing. PDFium renders onto opaque white unless you pass
+ *   `transparent: true`, which is exactly what a page thumbnail wants.
+ *
+ * Also drops the base64 data-URL round trip the old code needed: that inflated
+ * every PDF by ~33% in lambda memory before decoding it again, which is a real
+ * cost for a full newspaper issue.
+ */
+export async function generateThumbnailBuffer(pdfUrl: string): Promise<Buffer> {
+  // Imported lazily so SSR route loads never pay for instantiating the WASM
+  // module -- only the sync path renders PDFs.
+  const [{ PDFiumLibrary }, { default: sharp }] = await Promise.all([
+    import('@hyzyla/pdfium'),
+    import('sharp'),
+  ]);
+
   const response = await fetch(pdfUrl);
   if (!response.ok) {
-    throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+    throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
   }
-  const arrayBuffer = await response.arrayBuffer();
-  const base64Pdf = Buffer.from(arrayBuffer).toString('base64');
-  const dataUrl = `data:application/pdf;base64,${base64Pdf}`;
+  const pdfBytes = new Uint8Array(await response.arrayBuffer());
 
-  // Render first page at scale 1 (thumbnail quality)
-  const document = await pdf(dataUrl, { scale: 1 });
-  const firstPage = await document.getPage(1);
-  return Buffer.from(firstPage);
+  const library = await PDFiumLibrary.init();
+  let document;
+  try {
+    document = await library.loadDocument(pdfBytes);
+
+    if (document.getPageCount() < 1) {
+      throw new Error('PDF has no pages');
+    }
+
+    // getPage is 0-indexed here; pdf-to-img's getPage was 1-indexed.
+    const page = document.getPage(0);
+
+    // `render` takes 'bitmap' or a callback -- the published package has no
+    // 'sharp' shorthand, whatever the docs site shows. Doing the encode in the
+    // callback keeps it to a single sharp pass: raw pixels in, PNG out.
+    //
+    // channels: 4 is correct and needs no channel swap. PDFium's native output
+    // is BGRA, but this library sets FPDF_REVERSE_BYTE_ORDER for every non-Gray
+    // colour space, so what reaches this callback is already RGBA.
+    //
+    // `transparent` is left at its default of false, which is the whole point
+    // of the switch: PDFium fills the page white first, so nothing the PDF
+    // leaves unpainted comes out as alpha-0.
+    const rendered = await page.render({
+      scale: THUMBNAIL_RENDER_SCALE,
+      render: async ({ data, width, height }) =>
+        sharp(Buffer.from(data), { raw: { width, height, channels: 4 } })
+          .resize({ width: THUMBNAIL_MAX_WIDTH, withoutEnlargement: true })
+          .png({ compressionLevel: 9 })
+          .toBuffer(),
+    });
+
+    return Buffer.from(rendered.data);
+  } finally {
+    // PDFium holds its buffers in WASM linear memory, which the JS GC cannot
+    // reclaim. Skipping these leaks the whole document for the life of the
+    // lambda instance, and instances are reused across invocations.
+    document?.destroy();
+    library.destroy();
+  }
 }
 
 /**
