@@ -8,8 +8,8 @@
   import { strings } from '$lib/strings';
 
   let { data }: { data: Post.Post } = $props();
-  // Show the coverInPost by default
-  const showCoverInPost = $derived(data.coverInPost ?? true);
+  // Off by default -- see post-converter. Opt in per article with coverInPost.
+  const showCoverInPost = $derived(data.coverInPost ?? false);
 </script>
 
 <div class="flex flex-col pt8 mx8">

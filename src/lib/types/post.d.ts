@@ -21,8 +21,10 @@ export namespace Post {
     coverInPost?: boolean;
     coverCaption?: string;
     coverStyle: CoverStyle;
-    previewLayout?: PreviewLayoutFormat;
+    /** Space allocation on the front page. Drives grid spans. */
+    layoutSize?: LayoutSize;
     showPreviewSummary?: boolean;
+    /** Ordering within an issue; higher sorts earlier. Independent of size. */
     layoutWeight?: number;
     options?: Array<string>;
     series_tag?: string;
@@ -42,5 +44,11 @@ export namespace Post {
     NONE = 'NONE',
   }
 
-  export type PreviewLayoutFormat = 'compact' | 'standard' | 'feature';
+  /**
+   * How much page space a story gets. Purely spatial: it says nothing about
+   * whether there is a cover image or a summary, which are their own
+   * properties. `brief` was called `compact` when it also implied "no cover".
+   */
+  export type LayoutSize = 'brief' | 'standard' | 'feature';
+
 }

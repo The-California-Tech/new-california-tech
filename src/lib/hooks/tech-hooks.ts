@@ -8,22 +8,64 @@ import {
 import { parseTechIssueDate, parseWebsitePublishDate } from './utils/date-parser.js';
 import { createHash } from 'crypto';
 
-const WEB_LAYOUT_FORMAT_PROPERTY_NAME = 'Web Layout Format';
+/**
+ * Notion properties that drive the front-page layout.
+ *
+ * Each one carries exactly one editorial decision. They used to be entangled:
+ * a single `Web Layout Format` select set the size, the cover treatment *and*
+ * whether a summary showed, via
+ *
+ *   metadata.coverStyle = webLayoutFormat === 'feature' ? 'TOP' : 'NONE';
+ *
+ * which meant every `standard` article silently had no cover image, and the
+ * 'IN' cover treatment could never render at all even though index_post.svelte
+ * styles it. Size and cover are independent decisions and are now independent
+ * properties.
+ */
+const LAYOUT_SIZE_PROPERTY_NAME = 'Layout Size';
+const COVER_STYLE_PROPERTY_NAME = 'Cover Photo Style';
 const LAYOUT_WEIGHT_PROPERTY_NAME = 'Layout Weight';
+const SHOW_SUMMARY_PROPERTY_NAME = 'Show Summary';
 
 const HTML_FENCE_PATTERN = /(^|\n)```html[^\n]*\n([\s\S]*?)\n```(?=\n|$)/g;
 
-function normalizeWebLayoutFormat(value: string | null): 'compact' | 'standard' | 'feature' | null {
-  if (!value) {
-    return null;
-  }
+/**
+ * How much of the page a story gets. Purely a space decision -- it says nothing
+ * about covers or summaries.
+ *
+ * `compact` is accepted as an alias for `brief`: it was the old name, chosen
+ * back when the value also meant "no cover image". Now that covers are their
+ * own property, `brief` says what it means. Existing Notion pages keep working
+ * without being edited.
+ */
+function normalizeLayoutSize(value: string | null): 'brief' | 'standard' | 'feature' | null {
+  if (!value) return null;
 
   const normalized = value.trim().toLowerCase();
-  if (normalized === 'compact' || normalized === 'standard' || normalized === 'feature') {
-    return normalized;
-  }
+  if (normalized === 'compact' || normalized === 'brief') return 'brief';
+  if (normalized === 'standard' || normalized === 'feature') return normalized;
 
   return null;
+}
+
+/** How the cover image is treated. Independent of size. */
+function normalizeCoverStyle(value: string | null): 'NONE' | 'TOP' | 'IN' | null {
+  if (!value) return null;
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'none') return 'NONE';
+  if (normalized === 'top' || normalized === 'above') return 'TOP';
+  // 'IN' is the internal name for the text-over-image treatment; "Behind" is
+  // what it is called in Notion, because that describes what an editor sees.
+  if (normalized === 'behind' || normalized === 'in') return 'IN';
+
+  return null;
+}
+
+/** Notion checkbox -> boolean. Absent and unchecked are different things here. */
+function getCheckboxValue(property: unknown): boolean | null {
+  const prop = property as { type?: string; checkbox?: boolean } | undefined;
+  return prop?.type === 'checkbox' && typeof prop.checkbox === 'boolean' ? prop.checkbox : null;
 }
 
 function expandHtmlCodeBlocks(content: string): string {
@@ -362,20 +404,33 @@ export const articlePreviewMetadataHook: Hook<Record<string, unknown>> = {
   event: 'metadata:add',
   priority: 'override',
   fn: async (ctx: HookContext) => {
-    const webLayoutFormat = normalizeWebLayoutFormat(
-      getPropertyNamedValue(ctx.page.properties[WEB_LAYOUT_FORMAT_PROPERTY_NAME]),
-    );
-    const layoutWeight = getPropertyNumberValue(ctx.page.properties[LAYOUT_WEIGHT_PROPERTY_NAME]);
-
     const metadata: Record<string, unknown> = {};
-    if (webLayoutFormat) {
-      metadata.webLayoutFormat = webLayoutFormat;
-      metadata.coverStyle = webLayoutFormat === 'feature' ? 'TOP' : 'NONE';
-      metadata.showPreviewSummary = webLayoutFormat !== 'compact';
+
+    // One property, one meta key. Nothing here derives one editorial decision
+    // from another -- that is what post-converter's defaults are for, and it
+    // keeps those defaults overridable per article.
+    const layoutSize = normalizeLayoutSize(
+      getPropertyNamedValue(ctx.page.properties[LAYOUT_SIZE_PROPERTY_NAME]),
+    );
+    if (layoutSize) {
+      metadata.layoutSize = layoutSize;
     }
 
+    const coverStyle = normalizeCoverStyle(getPropertyNamedValue(ctx.page.properties[COVER_STYLE_PROPERTY_NAME]));
+    if (coverStyle) {
+      metadata.coverStyle = coverStyle;
+    }
+
+    const layoutWeight = getPropertyNumberValue(ctx.page.properties[LAYOUT_WEIGHT_PROPERTY_NAME]);
     if (layoutWeight !== null) {
       metadata.layoutWeight = layoutWeight;
+    }
+
+    // Only written when the checkbox exists. Leaving it out lets the size imply
+    // the answer, which is what almost every article wants.
+    const showSummary = getCheckboxValue(ctx.page.properties[SHOW_SUMMARY_PROPERTY_NAME]);
+    if (showSummary !== null) {
+      metadata.showPreviewSummary = showSummary;
     }
 
     return Object.keys(metadata).length > 0 ? metadata : null;

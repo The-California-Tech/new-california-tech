@@ -71,23 +71,27 @@
       {#each groupedByIssueDate as issue (issue.issueDate)}
         <section class="issue-section" data-issue-date={issue.issueDate}>
           <div class="issue-divider">{issue.dateLabel}</div>
-          <div class="issue-grid">
-            {#each issue.posts as p, index (p.slug)}
-              <div class="post-wrapper">
-                <IndexPost data={p} {index} showDate={showDateInCard} />
-              </div>
-            {/each}
+          <div class="issue-grid-clip">
+            <div class="issue-grid">
+              {#each issue.posts as p, index (p.slug)}
+                <div class="post-wrapper" data-size={p.layoutSize ?? 'standard'}>
+                  <IndexPost data={p} {index} showDate={showDateInCard} />
+                </div>
+              {/each}
+            </div>
           </div>
         </section>
       {/each}
     {:else}
       <section class="issue-section">
-        <div class="issue-grid">
-          {#each posts as p, index (p.slug)}
-            <div class="post-wrapper">
-              <IndexPost data={p} {index} showDate={showDateInCard} />
-            </div>
-          {/each}
+        <div class="issue-grid-clip">
+          <div class="issue-grid">
+            {#each posts as p, index (p.slug)}
+              <div class="post-wrapper" data-size={p.layoutSize ?? 'standard'}>
+                <IndexPost data={p} {index} showDate={showDateInCard} />
+              </div>
+            {/each}
+          </div>
         </div>
       </section>
     {/if}
@@ -95,8 +99,26 @@
 </main>
 
 <style lang="scss">
+  /*
+   * Sticks to the top of the viewport for as long as its own issue is on
+   * screen, then the next issue's banner pushes it off -- so the date of
+   * whatever you are reading is always visible while scrolling back through
+   * the archive.
+   *
+   * The spacing is padding rather than margin on purpose: a margin is outside
+   * the background box, so once stuck, cards would scroll through the gap
+   * above the rules. It also needs an opaque background for the same reason.
+   *
+   * Sticky works here because nothing in its ancestor chain clips overflow --
+   * .issue-grid-clip is a sibling subtree, not a parent.
+   */
   .issue-divider {
-    --at-apply: 'my-4 whitespace-nowrap flex flex-col items-center self-stretch';
+    --at-apply: 'py-4 whitespace-nowrap flex flex-col items-center self-stretch';
+    position: sticky;
+    top: 0;
+    /* Above the cards, below the site header (z-40). */
+    z-index: 20;
+    background: var(--qwer-bg-color);
     width: 100%;
     box-sizing: border-box;
     gap: 0.5rem;
@@ -119,50 +141,118 @@
     --at-apply: 'w-full';
   }
 
-  .issue-grid {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 0;
-    position: relative;
+  /*
+   * Clips the outer rules, and has to wrap the grid *directly*.
+   *
+   * Putting overflow:hidden on .issue-section did not work: the date divider
+   * sits inside the section above the grid, so shifting the grid up by a pixel
+   * only slid it under the divider -- still inside the section, still painted.
+   * The clip has to be the grid's own parent for the offset to push anything
+   * out of it.
+   */
+  .issue-grid-clip {
+    width: 100%;
+    overflow: hidden;
   }
 
-  /* Safety mask: removes any accidental exterior left rail from separator overlap */
-  .issue-grid::before {
+  /*
+   * A page dummy, not a card grid.
+   *
+   * Rows are a fixed unit and every story spans an integer number of them, so
+   * the grid tiles exactly. That is what removes the ragged whitespace without
+   * needing masonry: heights are *declared* rather than measured, which also
+   * means no JS and no layout shift. Native grid masonry would be the other way
+   * to get packing, but in 2026 it is still behind flags in Chrome and Firefox
+   * with two competing syntaxes unsettled -- and it would not buy us anything
+   * here, because designed boxes already tile.
+   *
+   * --row-unit is the vertical quantum. Sizes are multiples of it:
+   *   brief    1 col x 2 rows   a paragraph
+   *   standard 1 col x 3 rows   headline, image, a few inches
+   *   feature  2 col x 4 rows   the story you want read
+   */
+  .issue-grid {
+    --row-unit: 4.5rem;
+
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    grid-auto-rows: var(--row-unit);
+    gap: 0;
+  }
+
+  /*
+   * Each cell draws its own left and top rule; the grid offset plus the clip
+   * above removes the ones on the outer edge. Nothing counts cells, so a
+   * feature spanning two columns cannot break it the way the old
+   * nth-child(3n+1) arithmetic did.
+   *
+   * These are pseudo-elements rather than borders because the horizontal rule
+   * is inset at both ends -- a border always spans the full edge, so the inset
+   * is not expressible as one.
+   */
+  .post-wrapper {
+    --at-apply: 'w-full';
+    position: relative;
+    padding: 10px;
+    box-sizing: border-box;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Vertical rule, full height of the cell. */
+  .post-wrapper::before {
     content: '';
     position: absolute;
     left: 0;
     top: 0;
     bottom: 0;
     width: 1px;
-    background: var(--qwer-bg-color);
-    z-index: 6;
+    background: var(--qwer-text-color);
     pointer-events: none;
   }
 
-  .post-wrapper {
-    --at-apply: 'w-full';
-    position: relative;
-    padding: 10px;
-    box-sizing: border-box;
-  }
-
-  .post-wrapper::before,
+  /*
+   * Horizontal rule, spanning the full cell width.
+   *
+   * It used to stop short at both ends, which looked fine above a
+   * double-width feature -- one cell, one unbroken rule -- but wrong below it,
+   * where the two cells underneath each drew their own inset rule and left a
+   * gap in the middle of what should read as a single line. A cell cannot tell
+   * whether its neighbour is part of the same run, so the inset has to go.
+   */
   .post-wrapper::after {
     content: '';
     position: absolute;
-    pointer-events: none;
-    display: none;
-    background: var(--qwer-text-color);
-    z-index: 5;
-  }
-
-  /* Mobile (single column): only internal horizontal separators */
-  .post-wrapper + .post-wrapper::after {
-    display: block;
     top: 0;
     left: 0;
     right: 0;
     height: 1px;
+    background: var(--qwer-text-color);
+    pointer-events: none;
+  }
+
+  /*
+   * Interior rules only, at every breakpoint and regardless of spans.
+   *
+   * Shifting the whole grid up and left by the border width puts the first
+   * column's left borders and the first row's top borders outside .issue-section,
+   * which clips them. Interior borders are untouched. Nothing here has to know
+   * which cell begins a row, so a feature spanning two columns cannot break it
+   * the way the old nth-child arithmetic did.
+   */
+  .issue-grid {
+    margin: -1px 0 0 -1px;
+  }
+
+  /* Sizes collapse to width 1 here; only the height budget carries hierarchy. */
+  .post-wrapper[data-size='brief'] {
+    grid-row: span 2;
+  }
+  .post-wrapper[data-size='standard'] {
+    grid-row: span 6;
+  }
+  .post-wrapper[data-size='feature'] {
+    grid-row: span 8;
   }
 
   #index-posts {
@@ -171,93 +261,45 @@
 
   @media (min-width: 640px) {
     .issue-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* From here up, a feature earns width as well as height. */
+    .post-wrapper[data-size='feature'] {
+      grid-column: span 2;
+    }
+
+  }
+
+  @media (min-width: 900px) {
+    .issue-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    /* Reset mobile separator rules */
-    .post-wrapper::before,
-    .post-wrapper::after,
-    .post-wrapper + .post-wrapper::after {
-      display: none;
-    }
-
-    /* Inset vertical separators (do not touch horizontal lines) */
-    .post-wrapper:not(:nth-child(3n + 1))::before {
-      display: block;
-      position: absolute;
-      left: 0;
-      top: 10px;
-      bottom: 10px;
-      width: 1px;
-    }
-
-    /* Horizontal separators after first row */
-    .post-wrapper:nth-child(n + 4)::after {
-      display: block;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
     }
   }
 
-  @media (min-width: 1024px) {
+  @media (min-width: 1200px) {
     .issue-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
-
-    /* Reset 3-column separator rules */
-    .post-wrapper::before,
-    .post-wrapper::after,
-    .post-wrapper + .post-wrapper::after {
-      display: none;
-    }
-
-    .post-wrapper:not(:nth-child(4n + 1))::before {
-      display: block;
-      position: absolute;
-      left: 0;
-      top: 10px;
-      bottom: 10px;
-      width: 1px;
-    }
-
-    .post-wrapper:nth-child(n + 5)::after {
-      display: block;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-    }
   }
 
-  @media (min-width: 1536px) {
+  @media (min-width: 1600px) {
     .issue-grid {
       grid-template-columns: repeat(5, minmax(0, 1fr));
     }
-
-    /* Reset 4-column separator rules */
-    .post-wrapper::before,
-    .post-wrapper::after,
-    .post-wrapper + .post-wrapper::after {
-      display: none;
-    }
-
-    .post-wrapper:not(:nth-child(5n + 1))::before {
-      display: block;
-      position: absolute;
-      left: 0;
-      top: 10px;
-      bottom: 10px;
-      width: 1px;
-    }
-
-    .post-wrapper:nth-child(n + 6)::after {
-      display: block;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-    }
   }
+
+  /*
+   * DISABLED while the box/content fit is being sorted out. Where native
+   * masonry exists it would pack the leftovers, but it also changes how row
+   * spans behave, which makes it impossible to tell whether a layout problem is
+   * ours or the browser's. Re-enable once the declared spans look right
+   * unaided -- Safari 26 has this, Chrome and Firefox are behind flags.
+   *
+   * @supports (grid-template-rows: masonry) {
+   *   .issue-grid {
+   *     grid-template-rows: masonry;
+   *   }
+   * }
+   */
 </style>

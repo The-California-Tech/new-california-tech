@@ -30,52 +30,75 @@ export interface TechPageRow extends Partial<DatabasePage> {
 
 const VALID_COVER_STYLES = new Set(['TOP', 'RIGHT', 'BOT', 'LEFT', 'IN', 'NONE']);
 
+/**
+ * Trim source text to a word boundary before rendering it.
+ *
+ * This replaces `renderSummaryToHtml(previewSource).substring(0, 200)`, which
+ * cut the *rendered HTML* at a fixed character count -- so it could slice
+ * through a tag (`<e`) or an entity (`&amp` -> `&am`) and then hand the result
+ * to {@html}. Truncating the source instead means the renderer always sees
+ * complete input and always emits balanced markup.
+ *
+ * The limit is deliberately generous: how much of this is actually shown is a
+ * layout decision now (the card's space budget), not a data one. This only
+ * bounds the payload.
+ */
+function truncateAtWord(text: string, limit = 600): string {
+  if (text.length <= limit) return text;
+
+  const clipped = text.slice(0, limit);
+  const lastSpace = clipped.lastIndexOf(' ');
+  return (lastSpace > limit * 0.6 ? clipped.slice(0, lastSpace) : clipped).trimEnd() + '…';
+}
+
 function getMetadata(post: TechPageRow): Record<string, unknown> {
   const metadata = post.meta;
   return metadata && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : {};
 }
 
-function getWebLayoutFormat(metadata: Record<string, unknown>): Post.PreviewLayoutFormat | null {
-  const value = metadata.webLayoutFormat;
+/**
+ * How much page space the story gets. `compact` is the pre-rename name for
+ * `brief` and is still read, so articles written before the split keep working.
+ */
+function getLayoutSize(metadata: Record<string, unknown>): Post.LayoutSize {
+  const value = metadata.layoutSize ?? metadata.webLayoutFormat;
   if (typeof value !== 'string') {
-    return null;
+    return 'standard';
   }
 
   const normalized = value.trim().toLowerCase();
-  if (normalized === 'compact' || normalized === 'standard' || normalized === 'feature') {
-    return normalized as Post.PreviewLayoutFormat;
-  }
-
-  return null;
+  if (normalized === 'compact' || normalized === 'brief') return 'brief';
+  if (normalized === 'feature') return 'feature';
+  return 'standard';
 }
 
-function getCoverStyle(metadata: Record<string, unknown>): Post.CoverStyle {
+/**
+ * How the cover image is treated -- independent of size.
+ *
+ * This used to fall back to the layout format, returning 'NONE' for anything
+ * that was not `feature`. So every `standard` article lost its cover image
+ * without anyone asking for that, and 'IN' was unreachable. The default is now
+ * about the article itself: show the cover on top if there is one.
+ */
+function getCoverStyle(metadata: Record<string, unknown>, hasCover: boolean): Post.CoverStyle {
   const coverStyle = typeof metadata.coverStyle === 'string' ? metadata.coverStyle.toUpperCase() : null;
   if (coverStyle && VALID_COVER_STYLES.has(coverStyle)) {
     return coverStyle as Post.CoverStyle;
   }
 
-  const webLayoutFormat = getWebLayoutFormat(metadata);
-  if (webLayoutFormat === 'compact' || webLayoutFormat === 'standard') {
-    return 'NONE' as Post.CoverStyle;
-  }
-
-  return 'TOP' as Post.CoverStyle;
+  return (hasCover ? 'TOP' : 'NONE') as Post.CoverStyle;
 }
 
-function getShowPreviewSummary(
-  metadata: Record<string, unknown>,
-  webLayoutFormat: Post.PreviewLayoutFormat | null,
-): boolean {
+/**
+ * Size implies this; the `Show Summary` checkbox overrides it when an editor
+ * wants the exception (a brief that needs one line of context, say).
+ */
+function getShowPreviewSummary(metadata: Record<string, unknown>, layoutSize: Post.LayoutSize): boolean {
   if (typeof metadata.showPreviewSummary === 'boolean') {
     return metadata.showPreviewSummary;
   }
 
-  if (webLayoutFormat === 'compact') {
-    return false;
-  }
-
-  return true;
+  return layoutSize !== 'brief';
 }
 
 function toTechPublicSlug(post: TechPageRow): string {
@@ -96,7 +119,7 @@ function toTechPublicSlug(post: TechPageRow): string {
 
 export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: any[]): Post.Post {
   const metadata = getMetadata(post);
-  const webLayoutFormat = getWebLayoutFormat(metadata);
+  const layoutSize = getLayoutSize(metadata);
   const cover =
     typeof post.cover === 'string' && post.cover
       ? post.cover
@@ -109,12 +132,15 @@ export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: an
   const coverHeight =
     typeof post.cover_height === 'number' && Number.isFinite(post.cover_height) ? post.cover_height : undefined;
   const thumbnail = getAppThumbnailUrl(cover);
-  const coverInPost = typeof metadata.coverInPost === 'boolean' ? metadata.coverInPost : true;
+  // Defaults to false: the cover already leads the card on the front page, and
+  // repeating it full-width at the top of the article pushes the lede below the
+  // fold for no new information. Set coverInPost on a page to opt back in.
+  const coverInPost = typeof metadata.coverInPost === 'boolean' ? metadata.coverInPost : false;
   const layoutWeight =
     typeof metadata.layoutWeight === 'number' && Number.isFinite(metadata.layoutWeight)
       ? metadata.layoutWeight
       : undefined;
-  const showPreviewSummary = getShowPreviewSummary(metadata, webLayoutFormat);
+  const showPreviewSummary = getShowPreviewSummary(metadata, layoutSize);
   const tags: Array<string> = Array.isArray(post.tags) ? post.tags : [];
 
   // list_homepage_posts() omits `content` (too large for a feed payload) and
@@ -152,13 +178,13 @@ export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: an
     summary_html: post.summary?.trim()
       ? renderSummaryToHtml(post.summary)
       : previewSource
-        ? renderSummaryToHtml(previewSource).substring(0, 200)
+        ? renderSummaryToHtml(truncateAtWord(previewSource))
         : '',
 
     // QWER-specific UI fields (defaults)
-    coverStyle: getCoverStyle(metadata),
+    coverStyle: getCoverStyle(metadata, Boolean(cover)),
     showPreviewSummary,
-    previewLayout: webLayoutFormat ?? undefined,
+    layoutSize,
     layoutWeight,
     coverInPost,
     coverCaption,

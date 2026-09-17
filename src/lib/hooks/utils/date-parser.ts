@@ -30,6 +30,15 @@ const MONTH_NAMES = [
 ];
 
 const NAMED_MONTH = /^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/;
+/**
+ * Day-first with a named month: "2 June 2026", "2nd Jun. 2026".
+ *
+ * Unambiguous because the month is spelled, unlike the slashed form. This was
+ * missing from the first strict version, which rejected "2 June 2026" outright
+ * -- a regression, since the old `new Date()` parser read it correctly. Being
+ * strict is right, but only about genuinely malformed input.
+ */
+const DAY_FIRST = /^(\d{1,2})(?:st|nd|rd|th)?\.?\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})$/;
 const ISO_DATE = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
 const US_SLASHED = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
 
@@ -78,19 +87,34 @@ export function parseTechIssueDate(issueString: string): string | null {
   let day: number | undefined;
 
   const named = NAMED_MONTH.exec(trimmed);
+  const dayFirst = DAY_FIRST.exec(trimmed);
   const iso = ISO_DATE.exec(trimmed);
   const slashed = US_SLASHED.exec(trimmed);
 
+  const monthFromName = (name: string): number | null => {
+    const lower = name.toLowerCase();
+    const index = MONTH_NAMES.findIndex((m) => m === lower || (lower.length >= 3 && m.startsWith(lower)));
+    return index === -1 ? null : index + 1;
+  };
+
   if (named) {
-    const name = named[1]!.toLowerCase();
-    const index = MONTH_NAMES.findIndex((m) => m === name || (name.length >= 3 && m.startsWith(name)));
-    if (index === -1) {
+    const resolved = monthFromName(named[1]!);
+    if (resolved === null) {
       console.warn(`[tech.caltech.edu] Unrecognised month in Issue property: "${issueString}"`);
       return null;
     }
-    month = index + 1;
+    month = resolved;
     day = Number(named[2]);
     year = Number(named[3]);
+  } else if (dayFirst) {
+    const resolved = monthFromName(dayFirst[2]!);
+    if (resolved === null) {
+      console.warn(`[tech.caltech.edu] Unrecognised month in Issue property: "${issueString}"`);
+      return null;
+    }
+    day = Number(dayFirst[1]);
+    month = resolved;
+    year = Number(dayFirst[3]);
   } else if (iso) {
     year = Number(iso[1]);
     month = Number(iso[2]);

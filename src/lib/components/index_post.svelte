@@ -33,6 +33,46 @@
   });
 </script>
 
+<!--
+  The byline/summary blocks were identical in all three cover branches (Behind,
+  Top, None), so any change to them had to be made three times and stay in
+  sync. Snippets collapse that to one definition.
+-->
+{#snippet metaBlock()}
+  <div class="metadata">
+    {#if data.authors && data.authors.length > 0}
+      <p class="author" itemprop="author">{data.authors.join(', ')}</p>
+    {/if}
+    {#if data.tags && data.tags.length > 0}
+      <p class="category">{data.tags[0]}</p>
+    {/if}
+    {#if showDate && formattedDate}
+      <p class="published-date">{formattedDate}</p>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet summaryBlock()}
+  {#if showPreviewSummary && (data.summary_html || data.summary)}
+    <!--
+      The link comes *before* the text on purpose. It is floated, so the prose
+      wraps around it and it lands at the end of the last visible line instead
+      of consuming a line of its own. Source order is what makes that work.
+    -->
+    <div class="summary-block">
+      <div class="summary-clip">
+        <a href={data.slug} class="continued">(continued)</a>
+        <span class="continued-ellipsis" aria-hidden="true">…</span>
+        {#if data.summary_html}
+          <p class="summary" itemprop="description">{@html data.summary_html}</p>
+        {:else}
+          <p class="summary" itemprop="description">{data.summary}</p>
+        {/if}
+      </div>
+    </div>
+  {/if}
+{/snippet}
+
 {#if data}
   <article
     itemscope
@@ -58,7 +98,7 @@
 
     {#if previewCover && data.coverStyle !== 'NONE'}
       {#if data.coverStyle === 'IN'}
-        <div class="cover-frame" style:aspect-ratio={coverAspectRatio}>
+        <div class="cover-frame cover-frame-fill" style:--cover-ar={coverAspectRatio}>
           <ImgBanner
             loading={index < numberPostsEager ? 'eager' : 'lazy'}
             decoding={index < numberPostsEager ? 'auto' : 'async'}
@@ -67,108 +107,48 @@
             height={data.coverHeight}
             imgClass="z-1 blur-sm op-80 absolute object-cover w-full h-full transition transform duration-300 ease-in-out group-hover:(scale-110 blur-none)" />
         </div>
-        <div class="coverStyle-IN z-2 px-6 pt-4 pb-6 flex flex-col gap-2 bg-white/[0.25] dark:bg-black/[0.25]">
+        <div class="coverStyle-IN z-2 px-6 pt-4 pb-1 flex flex-col gap-2 bg-white/[0.25] dark:bg-black/[0.25]">
           <h2 class="text-xl font-bold" itemprop="name headline">
             <a href={data.slug} class="u-url title-link" itemprop="url">
               {data.title || 'No Title'}
             </a>
           </h2>
-          <div class="metadata">
-            {#if data.authors && data.authors.length > 0}
-              <p class="author" itemprop="author">
-                {data.authors.join(', ')}
-              </p>
-            {/if}
-            {#if showDate && formattedDate}
-              <p class="published-date">{formattedDate}</p>
-            {/if}
-            {#if data.tags && data.tags.length > 0}
-              <p class="category">
-                {data.tags[0]}
-              </p>
-            {/if}
-          </div>
-          {#if showPreviewSummary && data.summary_html}
-            <p class="summary whitespace-pre-line" itemprop="description">
-              {@html data.summary_html}
-            </p>
-          {:else if showPreviewSummary && data.summary}
-            <p class="summary whitespace-pre-line" itemprop="description">{data.summary}</p>
-          {/if}
+          {@render metaBlock()}
+          {@render summaryBlock()}
         </div>
       {:else}
-        <div class="flex flex-col">
-          <div class="cover-frame overflow-hidden" style:aspect-ratio={coverAspectRatio}>
-            <a href={data.slug} class="cursor-pointer" itemprop="url">
+        <div class="post-body">
+          <div class="cover-frame" style:--cover-ar={coverAspectRatio}>
+            <a href={data.slug} class="cursor-pointer block h-full" itemprop="url">
               <ImgBanner
                 src={previewCover}
                 loading={index < numberPostsEager ? 'eager' : 'lazy'}
                 decoding={index < numberPostsEager ? 'auto' : 'async'}
                 width={data.coverWidth}
                 height={data.coverHeight}
-                imgClass="op-90 group-hover:scale-105 transition transform duration-300 ease-in-out w-full h-auto" />
+                imgClass="op-90 group-hover:scale-105 transition transform duration-300 ease-in-out h-full w-auto max-w-full object-contain" />
             </a>
           </div>
-          <div class="index-post-panel px-1 pt-4 pb-6 flex flex-col gap-2 flex-1">
+          <div class="index-post-panel px-1 pt-4 pb-1 flex flex-col gap-2 flex-1">
             <h2 class="text-xl font-bold" itemprop="name headline">
               <a href={data.slug} class="u-url title-link" itemprop="url">
                 {data.title || 'No Title'}
               </a>
             </h2>
-            <div class="metadata">
-              {#if data.authors && data.authors.length > 0}
-                <p class="author" itemprop="author">
-                  {data.authors.join(', ')}
-                </p>
-              {/if}
-              {#if showDate && formattedDate}
-                <p class="published-date">{formattedDate}</p>
-              {/if}
-              {#if data.tags && data.tags.length > 0}
-                <p class="category">
-                  {data.tags[0]}
-                </p>
-              {/if}
-            </div>
-            {#if showPreviewSummary && data.summary_html}
-              <p class="summary whitespace-pre-line" itemprop="description">
-                {@html data.summary_html}
-              </p>
-            {:else if showPreviewSummary && data.summary}
-              <p class="summary whitespace-pre-line" itemprop="description">{data.summary}</p>
-            {/if}
+            {@render metaBlock()}
+            {@render summaryBlock()}
           </div>
         </div>
       {/if}
     {:else}
-      <div class="index-post-panel flex flex-col flex-1 gap-2 px-1 pt-4 pb-6">
+      <div class="index-post-panel index-post-panel-bare flex flex-col flex-1 gap-2 px-1 pt-1 pb-1">
         <h2 class="text-xl font-bold" itemprop="name headline">
           <a href={data.slug} class="u-url title-link" itemprop="url">
             {data.title || 'No Title'}
           </a>
         </h2>
-        <div class="metadata">
-          {#if data.authors && data.authors.length > 0}
-            <p class="author" itemprop="author">
-              {data.authors.join(', ')}
-            </p>
-          {/if}
-          {#if showDate && formattedDate}
-            <p class="published-date">{formattedDate}</p>
-          {/if}
-          {#if data.tags && data.tags.length > 0}
-            <p class="category">
-              {data.tags[0]}
-            </p>
-          {/if}
-        </div>
-        {#if showPreviewSummary && data.summary_html}
-          <p class="summary whitespace-pre-line" itemprop="description">
-            {@html data.summary_html}
-          </p>
-        {:else if showPreviewSummary && data.summary}
-          <p class="summary whitespace-pre-line" itemprop="description">{data.summary}</p>
-        {/if}
+        {@render metaBlock()}
+        {@render summaryBlock()}
       </div>
     {/if}
   </article>
@@ -176,9 +156,21 @@
 
 <style lang="scss">
   .index-post {
+    /* Shared by the byline and the summary so their lines sit on one rhythm. */
+    --card-leading: 1.4;
+
     display: flex;
     flex-direction: column;
-    aspect-ratio: 1 / 2;
+    /*
+     * The grid cell owns the height now -- .post-wrapper spans a whole number
+     * of fixed rows, sized by the story's Layout Size. This used to be
+     * `aspect-ratio: 1 / 2`, which made the card 2x its own width and therefore
+     * usually taller than the cell it sits in; the overflow was then clipped,
+     * which is why cards with covers showed no text at all. Two things cannot
+     * both decide the height.
+     */
+    height: 100%;
+    min-height: 0;
     border: 0;
     box-shadow: none;
     color: var(--qwer-text-color);
@@ -193,18 +185,104 @@
     }
   }
 
+  /*
+   * The cover keeps its real proportions, and is capped vertically.
+   *
+   * aspect-ratio comes from the actual image (--cover-ar), so a wide photo is
+   * short and a tall photo is tall -- no cropping, which is what object-fit:
+   * cover was doing before and why everything looked uniform. max-height then
+   * stops a portrait cover from eating the whole card; when it bites, the image
+   * shrinks *horizontally* to keep its ratio and centres, leaving margins at
+   * the sides rather than cutting the picture.
+   *
+   * Keeping aspect-ratio here also preserves the anti-CLS reservation: the
+   * frame knows its height before the image arrives.
+   */
   .cover-frame {
     position: relative;
     width: 100%;
-    // Default fallback ratio if coverWidth/coverHeight are unavailable
-    // (e.g. posts created before the image_metadata backfill).
-    aspect-ratio: 16 / 9;
+    flex: 0 1 auto;
+    aspect-ratio: var(--cover-ar, 16 / 9);
+    max-height: var(--cover-max, 46%);
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
     background-color: var(--qwer-bg-color);
   }
 
+  /* A brief is short enough that a tall cover would crowd out the words. */
+  :global([data-size='brief']) .cover-frame {
+    --cover-max: 40%;
+  }
+
+  /* A feature has room to lead with the image. */
+  :global([data-size='feature']) .cover-frame {
+    --cover-max: 55%;
+  }
+
+  .post-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /*
+   * The "Behind" treatment: the image is a backdrop for the whole card, with
+   * the text layered over it. It has to leave the flex flow to do that --
+   * as an ordinary flex sibling it would take a share of the height and the
+   * text would sit underneath, which is not what blur + a translucent panel
+   * are for. This branch was unreachable until covers stopped being derived
+   * from layout size, so it had never actually been laid out.
+   */
+  .cover-frame-fill {
+    position: absolute;
+    inset: 0;
+    flex: none;
+    z-index: 0;
+  }
+
+  .coverStyle-IN {
+    position: relative;
+  }
+
+  /* Byline stacked and centred, with a rule closing it off from the story. */
+  /*
+   * font-size is set here rather than via `text-sm`, which also ships its own
+   * line-height (1.25rem) and would fight --card-leading. `gap` is zero for the
+   * same reason: spacing between the author and category lines should come from
+   * the line height alone, or it will not match the summary below.
+   */
   .metadata {
-    --at-apply: 'flex gap-2 items-center text-sm border-b-1 pb-2 mb-1';
-    border-color: var(--qwer-metadata-border-color);
+    --at-apply: 'flex flex-col items-center pb-0.5 mb-2 w-full';
+    position: relative;
+    font-size: 0.875rem;
+    line-height: var(--card-leading);
+    gap: 0;
+    text-align: center;
+  }
+
+  /*
+   * A pseudo-element rather than border-bottom, because the rule is narrower
+   * than the block -- a border always spans the full edge. Centred under the
+   * byline, in the text colour rather than the lighter metadata border colour.
+   */
+  .metadata::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    /*
+     * A fixed length, not a percentage: at 40% the rule grew with the card, so
+     * a double-width feature got a divider twice the width of its neighbours.
+     * max-width keeps it inside the narrowest cards.
+     */
+    width: 10rem;
+    max-width: 70%;
+    height: 1px;
+    background: var(--qwer-text-color);
   }
 
   .author {
@@ -219,13 +297,113 @@
     --at-apply: 'm-0 op-70';
   }
 
-  .summary {
-    --at-apply: 'text-base leading-relaxed m-0';
-    flex: 1;
+  /*
+   * As many lines as actually fit, cut on a line boundary, link in the corner.
+   *
+   * A counted line total cannot work here, and the screenshots showed both
+   * failure directions at once: the space left for the summary is the card
+   * height, minus the byline, minus however many lines the headline wrapped to,
+   * minus however tall this particular cover turned out. One number is wrong
+   * both ways -- too small and a coverless card leaves dead space under the
+   * link, too large and a card with a tall cover and a three-line headline gets
+   * sliced through the middle of a line.
+   *
+   * So measure instead of guess.
+   *
+   *  - .summary-block flexes to whatever space is left.
+   *  - .summary-clip is absolutely positioned inside it. That is what makes the
+   *    height *definite*, and therefore makes percentages resolve at all: a
+   *    percentage against a flex-sized auto height silently computes to zero,
+   *    which is what collapsed the spacer and threw the link to the top corner.
+   *  - round(down, 100%, --line) trims the visible area to a whole number of
+   *    lines, so the bottom edge always lands on a line boundary.
+   *  - The spacer is that height minus one line, so the floated link sits on
+   *    the final line with the prose wrapping around it.
+   *
+   * No per-size tuning, because nothing is being guessed.
+   */
+  .summary-block {
+    position: relative;
+    flex: 1 1 auto;
     min-height: 0;
+    line-height: var(--card-leading);
+  }
+
+  .summary-clip {
+    position: absolute;
+    inset: 0;
     overflow: hidden;
-    display: block;
+    /* Unrounded cap first: without round() this degrades to possibly clipping a
+       partial line, rather than to no cap at all. Baseline since May 2024. */
+    max-height: 100%;
+    max-height: round(down, 100%, 1lh);
+  }
+
+  .summary-clip::before {
+    content: '';
+    float: left;
+    width: 0;
+    height: calc(100% - 1lh);
+    height: calc(round(down, 100%, 1lh) - 1lh);
+  }
+
+  /*
+   * font-size and line-height are set here rather than taken from `text-base`,
+   * which also ships a line-height (1.5rem). If the paragraph's real line
+   * height differs from the one the spacer is quantised against, the rounding
+   * counts a line that is not there and the link lands a line early.
+   */
+  .summary {
+    --at-apply: 'm-0';
+    font-size: 1rem;
+    line-height: inherit;
     text-align: justify;
+    white-space: pre-line;
+  }
+
+  .continued {
+    --at-apply: 'font-600';
+    float: right;
+    clear: both;
+    margin-left: 0.2em;
+    /*
+     * Matches the prose. A float aligns by box edge, not baseline, so a smaller
+     * font here made the link's line box shorter than the text's and it sat
+     * slightly high against the last line.
+     */
+    font-size: 1em;
+    line-height: inherit;
+    color: var(--qwer-text-color);
+    text-decoration: underline;
+
+    /*
+     * Not --qwer-title-hover-color: that resolves to plain `white` in dark mode
+     * and `black` in light, so the link vanished into the card on hover.
+     */
+    &:hover {
+      color: var(--qwer-link-hover-color);
+    }
+  }
+
+  /*
+   * The ellipsis is a sibling of the link, not its ::before.
+   *
+   * Inside the link it inherited the underline (text-decoration propagates to
+   * in-flow descendants and cannot be cancelled), so it needed display:
+   * inline-block to escape -- and a baseline-aligned inline-block can make the
+   * link's line box taller than one line, which turns the float into a
+   * two-line obstacle and drops the link a line early. As its own floated
+   * element it has neither problem.
+   *
+   * Source order matters: the link comes first, so it takes the rightmost
+   * position; this floats in beside it without clearing.
+   */
+  .continued-ellipsis {
+    float: right;
+    margin-left: 0.6em;
+    font-weight: 400;
+    text-decoration: none;
+    color: var(--qwer-text-color);
   }
 
   .coverStyle-IN {

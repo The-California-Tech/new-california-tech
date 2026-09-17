@@ -35,7 +35,10 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
       summary: post.summary?.slice(0, 150),
       summary_html: post.summary_html,
       showPreviewSummary: post.showPreviewSummary,
-      previewLayout: post.previewLayout,
+      // layoutSize drives the grid span. Omitting it made every post loaded by
+      // infinite scroll fall back to 'standard', so the layout silently changed
+      // character below the first page.
+      layoutSize: post.layoutSize,
       layoutWeight: post.layoutWeight,
       authors: post.authors,
       tags: post.tags,
