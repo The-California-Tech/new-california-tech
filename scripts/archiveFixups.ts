@@ -143,8 +143,7 @@ const CLEAR_PDF_URL = MERGES.map((m) => m.keep);
  */
 function buildNotes(): Map<string, string[]> {
   const notes = new Map<string, string[]>();
-  const add = (eprint: string, text: string) =>
-    notes.set(eprint, [...(notes.get(eprint) ?? []), text]);
+  const add = (eprint: string, text: string) => notes.set(eprint, [...(notes.get(eprint) ?? []), text]);
 
   for (const d of DUPLICATES) add(d.keep, `Duplicate scan (eprint ${d.archive}) archived — ${d.note}.`);
   for (const m of MERGES) {
@@ -157,7 +156,10 @@ function buildNotes(): Map<string, string[]> {
   for (const c of DATE_CORRECTIONS) add(c.eprint, `Date corrected to ${c.to} — ${c.note}.`);
   for (const n of NAME_OVERRIDES) add(n.eprint, `Title set by hand — ${n.note}.`);
 
-  add('1889', 'Date uncertain: the library filename reads 2000_04_28 while the record says April 21. April 21 retained.');
+  add(
+    '1889',
+    'Date uncertain: the library filename reads 2000_04_28 while the record says April 21. April 21 retained.',
+  );
 
   return notes;
 }
@@ -341,7 +343,9 @@ async function main() {
   if (toSetNotes.length) console.log(`  annotated ${toSetNotes.length} rows`);
 
   if (toWipeNotes.length) {
-    console.log(`  clearing Notes on ${toWipeNotes.length} rows (Notion allows ~3 writes/sec, so expect a few minutes)`);
+    console.log(
+      `  clearing Notes on ${toWipeNotes.length} rows (Notion allows ~3 writes/sec, so expect a few minutes)`,
+    );
     let wiped = 0;
     for (const page of toWipeNotes) {
       await notion.pages.update({

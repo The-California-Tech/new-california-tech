@@ -21,8 +21,8 @@ importers:
         specifier: 0.35.4
         version: 0.35.4(@types/node@25.5.2)
       symbiont-cms:
-        specifier: github:guutz/symbiont-cms#v1.2.2
-        version: https://codeload.github.com/guutz/symbiont-cms/tar.gz/edf35c296fdd568db8a609b2f7dbe552dd8e205f(supports-color@10.2.2)
+        specifier: github:guutz/symbiont-cms#v1.2.3
+        version: https://codeload.github.com/guutz/symbiont-cms/tar.gz/53c52fb34c5a8ab71a0be7a13996f7254fd0e61b(supports-color@10.2.2)
     devDependencies:
       '@changesets/cli':
         specifier: 3.0.2
@@ -4196,9 +4196,9 @@ packages:
     resolution: {integrity: sha512-NdbDn7fl4be1ViUG0oq/lvG6OZy3oENolV2ONjiqqsfVoeAfzaQAKUcEX3MrQod/Bebv1PgwET9rfXhgn9s4Kg==}
     engines: {node: '>=18'}
 
-  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/edf35c296fdd568db8a609b2f7dbe552dd8e205f:
-    resolution: {gitHosted: true, integrity: sha512-DpyvqB2tf1bYHFThXMV8fJ5wYEw6mConQhMQ2bhNntdODDKX1ZWK1EQn31UwHSS7UrUua03K73nMJzth9Rhghw==, tarball: https://codeload.github.com/guutz/symbiont-cms/tar.gz/edf35c296fdd568db8a609b2f7dbe552dd8e205f}
-    version: 1.2.2
+  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/53c52fb34c5a8ab71a0be7a13996f7254fd0e61b:
+    resolution: {gitHosted: true, integrity: sha512-pwlbb+znBgB2OiH7j48rE4jPEteCIkOhsQQI0j1BSjh5ixPycG346KvsXE6zaGgUnC/vpcFrSUbzuCwaTzmbjw==, tarball: https://codeload.github.com/guutz/symbiont-cms/tar.gz/53c52fb34c5a8ab71a0be7a13996f7254fd0e61b}
+    version: 1.2.3
     engines: {node: '>=18.18.0'}
 
   tabbable@6.4.0:
@@ -8640,7 +8640,7 @@ snapshots:
     transitivePeerDependencies:
       - '@typescript-eslint/types'
 
-  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/edf35c296fdd568db8a609b2f7dbe552dd8e205f(supports-color@10.2.2):
+  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/53c52fb34c5a8ab71a0be7a13996f7254fd0e61b(supports-color@10.2.2):
     dependencies:
       '@mdit/plugin-abbr': 1.1.0(markdown-it@15.0.1)
       '@mdit/plugin-attrs': 1.3.0(markdown-it@15.0.1)

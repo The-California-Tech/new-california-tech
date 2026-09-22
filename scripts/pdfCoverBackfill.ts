@@ -259,10 +259,7 @@ async function main() {
         contentType: 'image/png',
       });
 
-      const { error: updateError } = await supabase
-        .from('pages')
-        .update({ cover: newUrl })
-        .eq('page_id', row.page_id);
+      const { error: updateError } = await supabase.from('pages').update({ cover: newUrl }).eq('page_id', row.page_id);
 
       if (updateError) throw new Error(`pages.cover update failed: ${updateError.message}`);
 

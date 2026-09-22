@@ -9,6 +9,7 @@ import {
   autoCoverFit,
   autoCoverPlacement,
   DEFAULT_LAYOUT_PRESET,
+  normalizeBylineFormat,
   normalizeCoverFit,
   normalizeCoverPlacement,
   normalizeLayoutPreset,
@@ -224,7 +225,7 @@ export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: an
     layoutPreset,
     prominence,
     coverPlacement,
-    bylineFormat: recipe.bylineFormat,
+    bylineFormat: normalizeBylineFormat(metadata.bylineFormat) ?? recipe.bylineFormat,
     // Derived from the image, not the layout -- so it is right by default for
     // every photo without anyone setting anything, and still overridable.
     coverFit: normalizeCoverFit(metadata.coverFit) ?? autoCoverFit(coverWidth, coverHeight),

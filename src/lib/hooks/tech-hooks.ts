@@ -7,6 +7,7 @@ import {
 } from 'symbiont-cms/server';
 import { parseTechIssueDate, parseWebsitePublishDate } from './utils/date-parser.js';
 import {
+  normalizeBylineFormat,
   normalizeCoverFit,
   normalizeCoverPlacement,
   normalizeLayoutPreset,
@@ -36,6 +37,7 @@ const LAYOUT_PROPERTY_NAME = 'Layout';
  */
 const PROMINENCE_PROPERTY_NAME = 'Prominence';
 const COVER_PLACEMENT_PROPERTY_NAME = 'Cover Placement';
+const BYLINE_PROPERTY_NAME = 'Byline';
 /*
  * Blank for virtually every photo: the fit is worked out from the image's own
  * proportions. This is for the exception -- a landscape shot whose subject is
@@ -437,6 +439,11 @@ export const articlePreviewMetadataHook: Hook<Record<string, unknown>> = {
     );
     if (coverPlacement) {
       metadata.coverPlacement = coverPlacement;
+    }
+
+    const bylineFormat = normalizeBylineFormat(getPropertyNamedValue(ctx.page.properties[BYLINE_PROPERTY_NAME]));
+    if (bylineFormat) {
+      metadata.bylineFormat = bylineFormat;
     }
 
     const coverFit = normalizeCoverFit(getPropertyNamedValue(ctx.page.properties[COVER_FIT_PROPERTY_NAME]));

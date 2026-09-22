@@ -56,8 +56,18 @@ if (!notionToken) {
 const notion = new Client({ auth: notionToken });
 
 const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 /** UTF-8 bytes that were decoded as Latin-1 round-trip back to the real text. */
@@ -87,7 +97,10 @@ export function normalizeName(rawName: string, date: Date): { name: string } | {
   if (/\[\s*[vV]\./.test(name)) return { manual: 'nested bracketed citation' };
   if (/\d\s*-\s*\d.*\d{4}/.test(name)) return { manual: 'date range in title' };
 
-  const body = TAIL[Symbol.replace](name, '').trim().replace(/[,[\s]+$/, '').trim();
+  const body = TAIL[Symbol.replace](name, '')
+    .trim()
+    .replace(/[,[\s]+$/, '')
+    .trim();
   const m = VOL.exec(body);
   if (!m) return { manual: 'no volume token' };
 
@@ -95,7 +108,9 @@ export function normalizeName(rawName: string, date: Date): { name: string } | {
 
   let volume: string;
   let issue: string | null;
-  let scope: 'all' | 'vol' | 'iss' | null = null;
+  // No initialiser: every branch below assigns it before anything reads it, so
+  // `= null` was dead and eslint(no-useless-assignment) says so.
+  let scope: 'all' | 'vol' | 'iss' | null;
 
   if (bothBracketed) {
     const [v, i] = bothBracketed.split(':');

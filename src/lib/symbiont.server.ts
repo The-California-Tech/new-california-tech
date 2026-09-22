@@ -11,6 +11,7 @@ import {
   websitePagesHooks,
 } from '$lib/hooks/tech-hooks.js';
 import { syncNoteHooks } from '$lib/hooks/sync-note.js';
+import { layoutExpansionHooks } from '$lib/hooks/layout-expansion.js';
 
 export const symbiontSync = createSymbiontServer(symbiont, {
   'tech-article-staging': {
@@ -28,7 +29,7 @@ export const symbiontSync = createSymbiontServer(symbiont, {
     publishDate: (ctx) => publishDateHook.fn(ctx),
     addMetadata: (ctx) => articlePreviewMetadataHook.fn(ctx),
     transformContent: (ctx) => htmlCodeEmbedHook.fn(ctx),
-    hooks: [wordCountSyncHook, ...syncNoteHooks],
+    hooks: [wordCountSyncHook, ...layoutExpansionHooks, ...syncNoteHooks],
   },
   'tech-archives': {
     hooks: [...archiveIssueHooks, ...syncNoteHooks],

@@ -150,6 +150,34 @@ function slug(value: unknown): string | null {
   return normalized || null;
 }
 
+const BYLINE_FORMATS: readonly BylineFormat[] = ['stacked', 'inline'];
+
+/**
+ * The `Byline` property.
+ *
+ * This column exists so the granular controls *fully* determine the layout.
+ * They take precedence over the preset, and the preset is cleared when they
+ * disagree with it -- which only works if every dimension the preset carries
+ * has somewhere to live. Without this one, clearing a `Brief` would silently
+ * revert its byline from one line to two.
+ */
+export function normalizeBylineFormat(value: unknown): BylineFormat | null {
+  const normalized = slug(value);
+  if (!normalized) return null;
+  if ((BYLINE_FORMATS as readonly string[]).includes(normalized)) return normalized as BylineFormat;
+  switch (normalized) {
+    case 'one-line':
+    case 'single-line':
+    case 'oneline':
+      return 'inline';
+    case 'two-line':
+    case 'separate-lines':
+      return 'stacked';
+    default:
+      return null;
+  }
+}
+
 const PROMINENCES: readonly Prominence[] = ['lead', 'feature', 'standard', 'brief'];
 const COVER_PLACEMENTS: readonly CoverPlacement[] = ['stacked', 'sidebar'];
 
