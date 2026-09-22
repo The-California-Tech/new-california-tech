@@ -1,4 +1,11 @@
 import { resolveLayoutRecipe, type LayoutPreset } from '$lib/utils/layout-preset';
+import {
+  BYLINE_PROPERTY,
+  COVER_PLACEMENT_PROPERTY,
+  COVER_STYLE_PROPERTY,
+  HIDE_SUMMARY_PROPERTY,
+  PROMINENCE_PROPERTY,
+} from '$lib/notion-properties';
 
 /**
  * Reconciling the `Layout` preset with the granular columns it expands into.
@@ -67,12 +74,12 @@ export function reconcileLayout(preset: LayoutPreset | null, current: GranularLa
    * happens to be blank.
    */
   const conflicts: string[] = [];
-  if (current.prominence && current.prominence !== target.prominence) conflicts.push('Prominence');
+  if (current.prominence && current.prominence !== target.prominence) conflicts.push(PROMINENCE_PROPERTY);
   if (current.coverPlacement && current.coverPlacement !== target.coverPlacement) {
-    conflicts.push('Cover Placement');
+    conflicts.push(COVER_PLACEMENT_PROPERTY);
   }
-  if (current.bylineFormat && current.bylineFormat !== target.bylineFormat) conflicts.push('Byline');
-  if (current.coverStyle && current.coverStyle !== target.coverStyle) conflicts.push('Cover Photo Style');
+  if (current.bylineFormat && current.bylineFormat !== target.bylineFormat) conflicts.push(BYLINE_PROPERTY);
+  if (current.coverStyle && current.coverStyle !== target.coverStyle) conflicts.push(COVER_STYLE_PROPERTY);
 
   /*
    * The checkbox has no blank state, so it can only be compared once the row
@@ -83,7 +90,7 @@ export function reconcileLayout(preset: LayoutPreset | null, current: GranularLa
   const everExpanded = Boolean(
     current.prominence || current.coverPlacement || current.bylineFormat || current.coverStyle,
   );
-  if (everExpanded && current.hideSummary !== target.hideSummary) conflicts.push('Hide Summary');
+  if (everExpanded && current.hideSummary !== target.hideSummary) conflicts.push(HIDE_SUMMARY_PROPERTY);
 
   if (conflicts.length > 0) {
     return { action: 'clear-preset', conflicts };

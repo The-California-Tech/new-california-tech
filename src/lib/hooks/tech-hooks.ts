@@ -7,8 +7,19 @@ import {
 } from 'symbiont-cms/server';
 import { parseTechIssueDate, parseWebsitePublishDate } from './utils/date-parser.js';
 import {
+  BYLINE_PROPERTY as BYLINE_PROPERTY_NAME,
+  COVER_FIT_PROPERTY as COVER_FIT_PROPERTY_NAME,
+  COVER_PLACEMENT_PROPERTY as COVER_PLACEMENT_PROPERTY_NAME,
+  COVER_STYLE_PROPERTY as COVER_STYLE_PROPERTY_NAME,
+  HIDE_SUMMARY_PROPERTY as HIDE_SUMMARY_PROPERTY_NAME,
+  LAYOUT_PROPERTY as LAYOUT_PROPERTY_NAME,
+  LAYOUT_WEIGHT_PROPERTY as LAYOUT_WEIGHT_PROPERTY_NAME,
+  PROMINENCE_PROPERTY as PROMINENCE_PROPERTY_NAME,
+} from '../notion-properties.js';
+import {
   normalizeBylineFormat,
   normalizeCoverFit,
+  normalizeCoverStyle,
   normalizeCoverPlacement,
   normalizeLayoutPreset,
   normalizeProminence,
@@ -29,23 +40,16 @@ import { createHash } from 'crypto';
  * styles it. Size and cover are independent decisions and are now independent
  * properties.
  */
-const LAYOUT_PROPERTY_NAME = 'Layout';
 /*
  * Per-dimension escape hatches for the Layout preset. Blank on virtually every
  * article -- they are there for "Feature, but not that tall today", which is the
  * case where the preset names the card correctly and allocates it wrongly.
  */
-const PROMINENCE_PROPERTY_NAME = 'Prominence';
-const COVER_PLACEMENT_PROPERTY_NAME = 'Cover Placement';
-const BYLINE_PROPERTY_NAME = 'Byline Layout';
 /*
  * Blank for virtually every photo: the fit is worked out from the image's own
  * proportions. This is for the exception -- a landscape shot whose subject is
  * at the edge and must not be cropped, say.
  */
-const COVER_FIT_PROPERTY_NAME = 'Cover Fit';
-const COVER_STYLE_PROPERTY_NAME = 'Cover Photo Style';
-const LAYOUT_WEIGHT_PROPERTY_NAME = 'Layout Weight';
 /*
  * Phrased as an opt-out because a Notion checkbox has no unset state: an
  * untouched checkbox deserialises as `false`, not null. Named "Show Summary"
@@ -54,7 +58,6 @@ const LAYOUT_WEIGHT_PROPERTY_NAME = 'Layout Weight';
  * default any checkbox here can express is false, so false has to be the
  * answer we want.
  */
-const HIDE_SUMMARY_PROPERTY_NAME = 'Hide Summary';
 
 const HTML_FENCE_PATTERN = /(^|\n)```html[^\n]*\n([\s\S]*?)\n```(?=\n|$)/g;
 
@@ -67,18 +70,6 @@ const HTML_FENCE_PATTERN = /(^|\n)```html[^\n]*\n([\s\S]*?)\n```(?=\n|$)/g;
  * own property, `brief` says what it means. Existing Notion pages keep working
  * without being edited.
  */
-/** How the cover image is treated. Independent of size. */
-function normalizeCoverStyle(value: string | null): 'NONE' | 'TOP' | null {
-  if (!value) return null;
-
-  const normalized = value.trim().toLowerCase();
-  if (normalized === 'none') return 'NONE';
-  if (normalized === 'top' || normalized === 'above') return 'TOP';
-  // 'Behind' (internally 'IN') was retired -- the component branch is gone, so
-  // accepting the value would render nothing. Falls through to null, i.e. the
-  // preset's default.
-  return null;
-}
 
 /** Notion checkbox -> boolean. Absent and unchecked are different things here. */
 function getCheckboxValue(property: unknown): boolean | null {

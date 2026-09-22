@@ -294,6 +294,18 @@ export function normalizeCoverFit(value: unknown): CoverFit | null {
   }
 }
 
+/**
+ * The `Cover Photo Style` property. 'Behind' was retired -- see the comment on
+ * VALID_COVER_STYLES in post-converter.
+ */
+export function normalizeCoverStyle(value: unknown): 'NONE' | 'TOP' | null {
+  const normalized = slug(value);
+  if (!normalized) return null;
+  if (normalized === 'none') return 'NONE';
+  if (normalized === 'top' || normalized === 'above') return 'TOP';
+  return null;
+}
+
 export function resolveLayoutRecipe(preset: LayoutPreset | null | undefined): LayoutRecipe {
   return LAYOUT_PRESETS[preset ?? DEFAULT_LAYOUT_PRESET];
 }

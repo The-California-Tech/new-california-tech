@@ -11,17 +11,19 @@ import type { Hook, HookContext, SyncResultReport } from 'symbiont-cms';
 import {
   normalizeBylineFormat,
   normalizeCoverPlacement,
+  normalizeCoverStyle,
   normalizeLayoutPreset,
   normalizeProminence,
 } from '$lib/utils/layout-preset';
+import {
+  BYLINE_PROPERTY,
+  COVER_PLACEMENT_PROPERTY,
+  COVER_STYLE_PROPERTY,
+  HIDE_SUMMARY_PROPERTY,
+  LAYOUT_PROPERTY,
+  PROMINENCE_PROPERTY,
+} from '$lib/notion-properties';
 import { reconcileLayout, type GranularLayout } from '$lib/utils/layout-expansion';
-
-const LAYOUT_PROPERTY_NAME = 'Layout';
-const PROMINENCE_PROPERTY_NAME = 'Prominence';
-const COVER_PLACEMENT_PROPERTY_NAME = 'Cover Placement';
-const BYLINE_PROPERTY_NAME = 'Byline';
-const COVER_STYLE_PROPERTY_NAME = 'Cover Photo Style';
-const HIDE_SUMMARY_PROPERTY_NAME = 'Hide Summary';
 
 /** Internal value -> the label an editor sees in the select. */
 const PROMINENCE_LABELS: Record<string, string> = {
@@ -44,22 +46,13 @@ function checkbox(property: unknown): boolean {
   return prop?.type === 'checkbox' && typeof prop.checkbox === 'boolean' ? prop.checkbox : false;
 }
 
-/** 'Top'/'Above' -> 'TOP'. Mirrors the reader in tech-hooks. */
-function normalizeCoverStyleValue(value: string | null): string | null {
-  if (!value) return null;
-  const normalized = value.trim().toLowerCase();
-  if (normalized === 'none') return 'NONE';
-  if (normalized === 'top' || normalized === 'above') return 'TOP';
-  return null;
-}
-
 function readGranular(properties: Record<string, unknown>): GranularLayout {
   return {
-    prominence: normalizeProminence(selectName(properties[PROMINENCE_PROPERTY_NAME])),
-    coverPlacement: normalizeCoverPlacement(selectName(properties[COVER_PLACEMENT_PROPERTY_NAME])),
-    bylineFormat: normalizeBylineFormat(selectName(properties[BYLINE_PROPERTY_NAME])),
-    coverStyle: normalizeCoverStyleValue(selectName(properties[COVER_STYLE_PROPERTY_NAME])),
-    hideSummary: checkbox(properties[HIDE_SUMMARY_PROPERTY_NAME]),
+    prominence: normalizeProminence(selectName(properties[PROMINENCE_PROPERTY])),
+    coverPlacement: normalizeCoverPlacement(selectName(properties[COVER_PLACEMENT_PROPERTY])),
+    bylineFormat: normalizeBylineFormat(selectName(properties[BYLINE_PROPERTY])),
+    coverStyle: normalizeCoverStyle(selectName(properties[COVER_STYLE_PROPERTY])),
+    hideSummary: checkbox(properties[HIDE_SUMMARY_PROPERTY]),
   };
 }
 
@@ -98,7 +91,7 @@ export const layoutExpansionHooks: Hook[] = [
       }
 
       const properties = ctx.page.properties as Record<string, unknown>;
-      const preset = normalizeLayoutPreset(selectName(properties[LAYOUT_PROPERTY_NAME]));
+      const preset = normalizeLayoutPreset(selectName(properties[LAYOUT_PROPERTY]));
       const decision = reconcileLayout(preset, readGranular(properties));
 
       if (decision.action === 'none') return null;
@@ -111,7 +104,7 @@ export const layoutExpansionHooks: Hook[] = [
           conflicts: decision.conflicts,
         });
         await notionClient.updatePageProperties(ctx.page.id, {
-          [LAYOUT_PROPERTY_NAME]: { select: null },
+          [LAYOUT_PROPERTY]: { select: null },
         });
         return null;
       }
@@ -121,13 +114,13 @@ export const layoutExpansionHooks: Hook[] = [
 
       // One request, not five: the limit is expressed in requests per second.
       await notionClient.updatePageProperties(ctx.page.id, {
-        [PROMINENCE_PROPERTY_NAME]: { select: { name: PROMINENCE_LABELS[values.prominence!] } },
-        [COVER_PLACEMENT_PROPERTY_NAME]: {
+        [PROMINENCE_PROPERTY]: { select: { name: PROMINENCE_LABELS[values.prominence!] } },
+        [COVER_PLACEMENT_PROPERTY]: {
           select: { name: COVER_PLACEMENT_LABELS[values.coverPlacement!] },
         },
-        [BYLINE_PROPERTY_NAME]: { select: { name: BYLINE_LABELS[values.bylineFormat!] } },
-        [COVER_STYLE_PROPERTY_NAME]: { select: { name: COVER_STYLE_LABELS[values.coverStyle!] } },
-        [HIDE_SUMMARY_PROPERTY_NAME]: { checkbox: values.hideSummary },
+        [BYLINE_PROPERTY]: { select: { name: BYLINE_LABELS[values.bylineFormat!] } },
+        [COVER_STYLE_PROPERTY]: { select: { name: COVER_STYLE_LABELS[values.coverStyle!] } },
+        [HIDE_SUMMARY_PROPERTY]: { checkbox: values.hideSummary },
       });
 
       return null;
