@@ -2,7 +2,7 @@
  * The Tech-specific half of sync reporting.
  *
  * Symbiont knows a sync happened and whether it worked. It does not know that
- * this newsroom keeps a column called Info, writes times in Pacific, or tags
+ * this newsroom keeps a column called Sync Status, writes times in Pacific, or tags
  * machine output with `[sync]`. Those are editorial conventions, so they live
  * here. What symbiont supplies is the part that is the same everywhere: a safe
  * rich_text round-trip, rate-limit retry, and the self-edit detection that
@@ -10,7 +10,7 @@
  */
 import type { Hook, HookContext, SyncResultReport } from 'symbiont-cms';
 import { appendOrReplaceTaggedLine } from 'symbiont-cms/server';
-import { SYNC_NOTE_PROPERTY as NOTES_PROPERTY_NAME } from '$lib/notion-properties';
+import { SYNC_NOTE_PROPERTY as NOTES_PROPERTY_NAME } from '$lib/sync/properties';
 
 /** Prefix that marks the line as machine-written, so the next run replaces it. */
 const SYNC_NOTE_TAG = '[sync]';

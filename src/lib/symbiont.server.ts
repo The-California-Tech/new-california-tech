@@ -9,9 +9,9 @@ import {
   wordCountSyncHook,
   archiveIssueHooks,
   websitePagesHooks,
-} from '$lib/hooks/tech-hooks.js';
-import { syncNoteHooks } from '$lib/hooks/sync-note.js';
-import { layoutExpansionHooks } from '$lib/hooks/layout-expansion.js';
+} from '$lib/sync/hooks/tech.js';
+import { syncNoteHooks } from '$lib/sync/hooks/sync-note.js';
+import { layoutExpansionHooks } from '$lib/sync/hooks/layout-expansion.js';
 
 export const symbiontSync = createSymbiontServer(symbiont, {
   'tech-article-staging': {
@@ -36,6 +36,6 @@ export const symbiontSync = createSymbiontServer(symbiont, {
   },
   'tech-website-pages': {
     slugProperty: 'Slug',
-    hooks: websitePagesHooks,
+    hooks: [...websitePagesHooks, ...syncNoteHooks],
   },
 });

@@ -36,7 +36,7 @@
 // Relative, not '$lib/...': `$lib` is a Vite alias and this runs under tsx,
 // which does not know about SvelteKit's aliases.
 import { symbiont } from '../src/lib/symbiont.js';
-import { generateThumbnailBuffer } from '../src/lib/hooks/tech-hooks.js';
+import { generateThumbnailBuffer } from '../src/lib/sync/hooks/tech.js';
 import { uploadBufferToSupabase, cleanupUnusedMedia } from 'symbiont-cms/server';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';

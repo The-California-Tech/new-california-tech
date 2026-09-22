@@ -5,7 +5,7 @@ import {
   getPropertyNamedValue,
   getPropertyNumberValue,
 } from 'symbiont-cms/server';
-import { parseTechIssueDate, parseWebsitePublishDate } from './utils/date-parser.js';
+import { parseTechIssueDate, parseWebsitePublishDate } from '../date-parser.js';
 import {
   BYLINE_PROPERTY as BYLINE_PROPERTY_NAME,
   COVER_FIT_PROPERTY as COVER_FIT_PROPERTY_NAME,
@@ -15,7 +15,7 @@ import {
   LAYOUT_PROPERTY as LAYOUT_PROPERTY_NAME,
   LAYOUT_WEIGHT_PROPERTY as LAYOUT_WEIGHT_PROPERTY_NAME,
   PROMINENCE_PROPERTY as PROMINENCE_PROPERTY_NAME,
-} from '../notion-properties.js';
+} from '../properties.js';
 import {
   normalizeBylineFormat,
   normalizeCoverFit,
@@ -23,7 +23,7 @@ import {
   normalizeCoverPlacement,
   normalizeLayoutPreset,
   normalizeProminence,
-} from '../utils/layout-preset.js';
+} from '../../utils/layout-preset.js';
 import { createHash } from 'crypto';
 
 /**
