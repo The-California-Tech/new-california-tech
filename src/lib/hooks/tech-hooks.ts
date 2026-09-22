@@ -37,7 +37,7 @@ const LAYOUT_PROPERTY_NAME = 'Layout';
  */
 const PROMINENCE_PROPERTY_NAME = 'Prominence';
 const COVER_PLACEMENT_PROPERTY_NAME = 'Cover Placement';
-const BYLINE_PROPERTY_NAME = 'Byline';
+const BYLINE_PROPERTY_NAME = 'Byline Layout';
 /*
  * Blank for virtually every photo: the fit is worked out from the image's own
  * proportions. This is for the exception -- a landscape shot whose subject is
