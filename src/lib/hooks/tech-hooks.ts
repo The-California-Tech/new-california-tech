@@ -6,6 +6,12 @@ import {
   getPropertyNumberValue,
 } from 'symbiont-cms/server';
 import { parseTechIssueDate, parseWebsitePublishDate } from './utils/date-parser.js';
+import {
+  normalizeCoverFit,
+  normalizeCoverPlacement,
+  normalizeLayoutPreset,
+  normalizeProminence,
+} from '../utils/layout-preset.js';
 import { createHash } from 'crypto';
 
 /**
@@ -22,10 +28,31 @@ import { createHash } from 'crypto';
  * styles it. Size and cover are independent decisions and are now independent
  * properties.
  */
-const LAYOUT_SIZE_PROPERTY_NAME = 'Layout Size';
+const LAYOUT_PROPERTY_NAME = 'Layout';
+/*
+ * Per-dimension escape hatches for the Layout preset. Blank on virtually every
+ * article -- they are there for "Feature, but not that tall today", which is the
+ * case where the preset names the card correctly and allocates it wrongly.
+ */
+const PROMINENCE_PROPERTY_NAME = 'Prominence';
+const COVER_PLACEMENT_PROPERTY_NAME = 'Cover Placement';
+/*
+ * Blank for virtually every photo: the fit is worked out from the image's own
+ * proportions. This is for the exception -- a landscape shot whose subject is
+ * at the edge and must not be cropped, say.
+ */
+const COVER_FIT_PROPERTY_NAME = 'Cover Fit';
 const COVER_STYLE_PROPERTY_NAME = 'Cover Photo Style';
 const LAYOUT_WEIGHT_PROPERTY_NAME = 'Layout Weight';
-const SHOW_SUMMARY_PROPERTY_NAME = 'Show Summary';
+/*
+ * Phrased as an opt-out because a Notion checkbox has no unset state: an
+ * untouched checkbox deserialises as `false`, not null. Named "Show Summary"
+ * it therefore read as "hide the summary" on every article nobody had ticked,
+ * and summaries vanished from posts as soon as they were re-synced. The
+ * default any checkbox here can express is false, so false has to be the
+ * answer we want.
+ */
+const HIDE_SUMMARY_PROPERTY_NAME = 'Hide Summary';
 
 const HTML_FENCE_PATTERN = /(^|\n)```html[^\n]*\n([\s\S]*?)\n```(?=\n|$)/g;
 
@@ -38,27 +65,16 @@ const HTML_FENCE_PATTERN = /(^|\n)```html[^\n]*\n([\s\S]*?)\n```(?=\n|$)/g;
  * own property, `brief` says what it means. Existing Notion pages keep working
  * without being edited.
  */
-function normalizeLayoutSize(value: string | null): 'brief' | 'standard' | 'feature' | null {
-  if (!value) return null;
-
-  const normalized = value.trim().toLowerCase();
-  if (normalized === 'compact' || normalized === 'brief') return 'brief';
-  if (normalized === 'standard' || normalized === 'feature') return normalized;
-
-  return null;
-}
-
 /** How the cover image is treated. Independent of size. */
-function normalizeCoverStyle(value: string | null): 'NONE' | 'TOP' | 'IN' | null {
+function normalizeCoverStyle(value: string | null): 'NONE' | 'TOP' | null {
   if (!value) return null;
 
   const normalized = value.trim().toLowerCase();
   if (normalized === 'none') return 'NONE';
   if (normalized === 'top' || normalized === 'above') return 'TOP';
-  // 'IN' is the internal name for the text-over-image treatment; "Behind" is
-  // what it is called in Notion, because that describes what an editor sees.
-  if (normalized === 'behind' || normalized === 'in') return 'IN';
-
+  // 'Behind' (internally 'IN') was retired -- the component branch is gone, so
+  // accepting the value would render nothing. Falls through to null, i.e. the
+  // preset's default.
   return null;
 }
 
@@ -153,10 +169,7 @@ const THUMBNAIL_MAX_WIDTH = 1000;
 export async function generateThumbnailBuffer(pdfUrl: string): Promise<Buffer> {
   // Imported lazily so SSR route loads never pay for instantiating the WASM
   // module -- only the sync path renders PDFs.
-  const [{ PDFiumLibrary }, { default: sharp }] = await Promise.all([
-    import('@hyzyla/pdfium'),
-    import('sharp'),
-  ]);
+  const [{ PDFiumLibrary }, { default: sharp }] = await Promise.all([import('@hyzyla/pdfium'), import('sharp')]);
 
   const response = await fetch(pdfUrl);
   if (!response.ok) {
@@ -409,11 +422,26 @@ export const articlePreviewMetadataHook: Hook<Record<string, unknown>> = {
     // One property, one meta key. Nothing here derives one editorial decision
     // from another -- that is what post-converter's defaults are for, and it
     // keeps those defaults overridable per article.
-    const layoutSize = normalizeLayoutSize(
-      getPropertyNamedValue(ctx.page.properties[LAYOUT_SIZE_PROPERTY_NAME]),
+    const layoutPreset = normalizeLayoutPreset(getPropertyNamedValue(ctx.page.properties[LAYOUT_PROPERTY_NAME]));
+    if (layoutPreset) {
+      metadata.layoutPreset = layoutPreset;
+    }
+
+    const prominence = normalizeProminence(getPropertyNamedValue(ctx.page.properties[PROMINENCE_PROPERTY_NAME]));
+    if (prominence) {
+      metadata.prominence = prominence;
+    }
+
+    const coverPlacement = normalizeCoverPlacement(
+      getPropertyNamedValue(ctx.page.properties[COVER_PLACEMENT_PROPERTY_NAME]),
     );
-    if (layoutSize) {
-      metadata.layoutSize = layoutSize;
+    if (coverPlacement) {
+      metadata.coverPlacement = coverPlacement;
+    }
+
+    const coverFit = normalizeCoverFit(getPropertyNamedValue(ctx.page.properties[COVER_FIT_PROPERTY_NAME]));
+    if (coverFit) {
+      metadata.coverFit = coverFit;
     }
 
     const coverStyle = normalizeCoverStyle(getPropertyNamedValue(ctx.page.properties[COVER_STYLE_PROPERTY_NAME]));
@@ -426,11 +454,11 @@ export const articlePreviewMetadataHook: Hook<Record<string, unknown>> = {
       metadata.layoutWeight = layoutWeight;
     }
 
-    // Only written when the checkbox exists. Leaving it out lets the size imply
-    // the answer, which is what almost every article wants.
-    const showSummary = getCheckboxValue(ctx.page.properties[SHOW_SUMMARY_PROPERTY_NAME]);
-    if (showSummary !== null) {
-      metadata.showPreviewSummary = showSummary;
+    // Only written when the property exists at all, so a datasource without it
+    // falls through to the converter's default of showing the summary.
+    const hideSummary = getCheckboxValue(ctx.page.properties[HIDE_SUMMARY_PROPERTY_NAME]);
+    if (hideSummary !== null) {
+      metadata.showPreviewSummary = !hideSummary;
     }
 
     return Object.keys(metadata).length > 0 ? metadata : null;
@@ -830,7 +858,12 @@ export const websitePagesHooks: Hook[] = [
 
 /**
  * Article hooks for tech-article-staging database.
- * Exported as default export for backwards compatibility.
+ *
+ * NOT the live wiring. symbiont.server.ts passes these individually, because
+ * several of them fill named config slots (shouldSync, isPublished,
+ * publishDate...) rather than going in the `hooks` array. Kept for
+ * backwards compatibility and as a roster of what an article run involves --
+ * adding a hook here does NOT put it into the sync.
  */
 export const techHooks: Hook[] = [
   excludeAndDeletePrintOnlyHook,

@@ -10,6 +10,7 @@ import {
   archiveIssueHooks,
   websitePagesHooks,
 } from '$lib/hooks/tech-hooks.js';
+import { syncNoteHooks } from '$lib/hooks/sync-note.js';
 
 export const symbiontSync = createSymbiontServer(symbiont, {
   'tech-article-staging': {
@@ -27,10 +28,10 @@ export const symbiontSync = createSymbiontServer(symbiont, {
     publishDate: (ctx) => publishDateHook.fn(ctx),
     addMetadata: (ctx) => articlePreviewMetadataHook.fn(ctx),
     transformContent: (ctx) => htmlCodeEmbedHook.fn(ctx),
-    hooks: [wordCountSyncHook],
+    hooks: [wordCountSyncHook, ...syncNoteHooks],
   },
   'tech-archives': {
-    hooks: archiveIssueHooks,
+    hooks: [...archiveIssueHooks, ...syncNoteHooks],
   },
   'tech-website-pages': {
     slugProperty: 'Slug',

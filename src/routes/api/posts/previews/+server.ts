@@ -35,10 +35,15 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
       summary: post.summary?.slice(0, 150),
       summary_html: post.summary_html,
       showPreviewSummary: post.showPreviewSummary,
-      // layoutSize drives the grid span. Omitting it made every post loaded by
-      // infinite scroll fall back to 'standard', so the layout silently changed
-      // character below the first page.
-      layoutSize: post.layoutSize,
+      // These drive the grid span and the card's internal arrangement. Omitting
+      // them made every post loaded by infinite scroll fall back to the
+      // default preset, so the layout silently changed character below the
+      // first page.
+      layoutPreset: post.layoutPreset,
+      prominence: post.prominence,
+      coverPlacement: post.coverPlacement,
+      bylineFormat: post.bylineFormat,
+      coverFit: post.coverFit,
       layoutWeight: post.layoutWeight,
       authors: post.authors,
       tags: post.tags,

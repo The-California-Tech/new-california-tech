@@ -5,6 +5,16 @@ import type { DatabasePage } from 'symbiont-cms';
 import type { Post } from '$lib/types/post';
 import { renderSummaryToHtml } from 'symbiont-cms/server';
 import { getAppThumbnailUrl } from '$lib/utils/image-url';
+import {
+  autoCoverFit,
+  autoCoverPlacement,
+  DEFAULT_LAYOUT_PRESET,
+  normalizeCoverFit,
+  normalizeCoverPlacement,
+  normalizeLayoutPreset,
+  normalizeProminence,
+  resolveLayoutRecipe,
+} from '$lib/utils/layout-preset';
 
 /**
  * A row as consumed by the converter. Deliberately loose, because three
@@ -28,7 +38,13 @@ export interface TechPageRow extends Partial<DatabasePage> {
   issue_rank?: number | null;
 }
 
-const VALID_COVER_STYLES = new Set(['TOP', 'RIGHT', 'BOT', 'LEFT', 'IN', 'NONE']);
+/*
+ * 'IN' -- the text-over-a-blurred-photo treatment -- is deliberately absent.
+ * It was removed rather than merely unused, so setting it in Notion falls
+ * through to the default instead of rendering a branch that no longer exists.
+ * The enum member survives in post.d.ts; add the branch back to bring it back.
+ */
+const VALID_COVER_STYLES = new Set(['TOP', 'RIGHT', 'BOT', 'LEFT', 'NONE']);
 
 /**
  * Trim source text to a word boundary before rendering it.
@@ -57,19 +73,17 @@ function getMetadata(post: TechPageRow): Record<string, unknown> {
 }
 
 /**
- * How much page space the story gets. `compact` is the pre-rename name for
- * `brief` and is still read, so articles written before the split keep working.
+ * The `Layout` preset. Reads the two property names this has had before it
+ * (`layoutSize`, `webLayoutFormat`) so a part-migrated datasource still renders
+ * -- normalizeLayoutPreset maps their old values onto the new vocabulary.
  */
-function getLayoutSize(metadata: Record<string, unknown>): Post.LayoutSize {
-  const value = metadata.layoutSize ?? metadata.webLayoutFormat;
-  if (typeof value !== 'string') {
-    return 'standard';
-  }
-
-  const normalized = value.trim().toLowerCase();
-  if (normalized === 'compact' || normalized === 'brief') return 'brief';
-  if (normalized === 'feature') return 'feature';
-  return 'standard';
+function getLayoutPreset(metadata: Record<string, unknown>) {
+  return (
+    normalizeLayoutPreset(metadata.layoutPreset) ??
+    normalizeLayoutPreset(metadata.layoutSize) ??
+    normalizeLayoutPreset(metadata.webLayoutFormat) ??
+    DEFAULT_LAYOUT_PRESET
+  );
 }
 
 /**
@@ -80,25 +94,33 @@ function getLayoutSize(metadata: Record<string, unknown>): Post.LayoutSize {
  * without anyone asking for that, and 'IN' was unreachable. The default is now
  * about the article itself: show the cover on top if there is one.
  */
-function getCoverStyle(metadata: Record<string, unknown>, hasCover: boolean): Post.CoverStyle {
+function getCoverStyle(
+  metadata: Record<string, unknown>,
+  hasCover: boolean,
+  presetWantsCover: boolean,
+): Post.CoverStyle {
   const coverStyle = typeof metadata.coverStyle === 'string' ? metadata.coverStyle.toUpperCase() : null;
   if (coverStyle && VALID_COVER_STYLES.has(coverStyle)) {
     return coverStyle as Post.CoverStyle;
   }
 
-  return (hasCover ? 'TOP' : 'NONE') as Post.CoverStyle;
+  // The preset's answer is a default, not a derivation: an editor who sets
+  // Cover Photo Style still wins. That distinction is what went wrong when the
+  // layout format silently stripped covers off every `standard` article.
+  return (hasCover && presetWantsCover ? 'TOP' : 'NONE') as Post.CoverStyle;
 }
 
 /**
- * Size implies this; the `Show Summary` checkbox overrides it when an editor
- * wants the exception (a brief that needs one line of context, say).
+ * The preset's answer, unless `Hide Summary` says otherwise.
+ *
+ * Note which way round that is. An earlier version had the *size* decide this
+ * with no way to opt back in, so summaries vanished from articles whose size an
+ * editor had changed for unrelated reasons and no property anywhere showed why.
+ * A preset naming the whole card ("Brief") is allowed to carry a default; a
+ * dimension of the card ("brief-sized") is not.
  */
-function getShowPreviewSummary(metadata: Record<string, unknown>, layoutSize: Post.LayoutSize): boolean {
-  if (typeof metadata.showPreviewSummary === 'boolean') {
-    return metadata.showPreviewSummary;
-  }
-
-  return layoutSize !== 'brief';
+function getShowPreviewSummary(metadata: Record<string, unknown>, presetWantsSummary: boolean): boolean {
+  return typeof metadata.showPreviewSummary === 'boolean' ? metadata.showPreviewSummary : presetWantsSummary;
 }
 
 function toTechPublicSlug(post: TechPageRow): string {
@@ -119,7 +141,12 @@ function toTechPublicSlug(post: TechPageRow): string {
 
 export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: any[]): Post.Post {
   const metadata = getMetadata(post);
-  const layoutSize = getLayoutSize(metadata);
+  const layoutPreset = getLayoutPreset(metadata);
+  const recipe = resolveLayoutRecipe(layoutPreset);
+  // Each dimension of the preset is separately overridable and normally is not
+  // overridden. Same rule as Cover Photo Style and Hide Summary: the preset
+  // supplies a default, an explicit property wins, and nothing is derived.
+  const prominence = normalizeProminence(metadata.prominence) ?? recipe.prominence;
   const cover =
     typeof post.cover === 'string' && post.cover
       ? post.cover
@@ -131,6 +158,16 @@ export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: an
     typeof post.cover_width === 'number' && Number.isFinite(post.cover_width) ? post.cover_width : undefined;
   const coverHeight =
     typeof post.cover_height === 'number' && Number.isFinite(post.cover_height) ? post.cover_height : undefined;
+  /*
+   * Placement is the picture's business before it is the preset's: a portrait
+   * wants a column of its own whatever the story's prominence says. The preset
+   * only decides when the image gives no reason to differ -- and an explicit
+   * Cover Placement still beats both.
+   */
+  const coverPlacement =
+    normalizeCoverPlacement(metadata.coverPlacement) ??
+    (autoCoverPlacement(coverWidth, coverHeight, prominence) === 'sidebar' ? 'sidebar' : recipe.coverPlacement);
+
   const thumbnail = getAppThumbnailUrl(cover);
   // Defaults to false: the cover already leads the card on the front page, and
   // repeating it full-width at the top of the article pushes the lede below the
@@ -140,7 +177,7 @@ export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: an
     typeof metadata.layoutWeight === 'number' && Number.isFinite(metadata.layoutWeight)
       ? metadata.layoutWeight
       : undefined;
-  const showPreviewSummary = getShowPreviewSummary(metadata, layoutSize);
+  const showPreviewSummary = getShowPreviewSummary(metadata, recipe.summary);
   const tags: Array<string> = Array.isArray(post.tags) ? post.tags : [];
 
   // list_homepage_posts() omits `content` (too large for a feed payload) and
@@ -182,9 +219,15 @@ export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: an
         : '',
 
     // QWER-specific UI fields (defaults)
-    coverStyle: getCoverStyle(metadata, Boolean(cover)),
+    coverStyle: getCoverStyle(metadata, Boolean(cover), recipe.cover),
     showPreviewSummary,
-    layoutSize,
+    layoutPreset,
+    prominence,
+    coverPlacement,
+    bylineFormat: recipe.bylineFormat,
+    // Derived from the image, not the layout -- so it is right by default for
+    // every photo without anyone setting anything, and still overridable.
+    coverFit: normalizeCoverFit(metadata.coverFit) ?? autoCoverFit(coverWidth, coverHeight),
     layoutWeight,
     coverInPost,
     coverCaption,

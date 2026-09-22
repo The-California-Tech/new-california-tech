@@ -17,6 +17,25 @@
     showDateInCard?: boolean;
   } = $props();
 
+  /**
+   * What the card will actually put on the page.
+   *
+   * The wrapper is the element that carries the row span, so it has to know
+   * whether there will be a cover and a summary -- those are what the height
+   * budget is for. This mirrors the branch conditions in index_post.svelte; if
+   * those change, change these.
+   *
+   * The preset has already been expanded by the converter, so what arrives here
+   * is the resolved answer including any Cover Photo Style / Hide Summary
+   * override. The wrapper never re-reads the preset for this.
+   */
+  function cardShape(p: Post.Post) {
+    return {
+      cover: Boolean((p.thumbnail ?? p.cover) && p.coverStyle !== 'NONE'),
+      summary: Boolean((p.showPreviewSummary ?? true) && (p.summary_html || p.summary)),
+    };
+  }
+
   const groupedByIssueDate = $derived.by(() => {
     const groups: Array<{ issueDate: string; dateLabel: string; posts: Post.Post[] }> = [];
     // A local accumulator inside $derived.by, discarded when the derivation
@@ -74,7 +93,13 @@
           <div class="issue-grid-clip">
             <div class="issue-grid">
               {#each issue.posts as p, index (p.slug)}
-                <div class="post-wrapper" data-size={p.layoutSize ?? 'standard'}>
+                {@const shape = cardShape(p)}
+                <div
+                  class="post-wrapper"
+                  data-prominence={p.prominence ?? 'standard'}
+                  data-placement={p.coverPlacement ?? 'stacked'}
+                  data-cover={shape.cover ? '' : undefined}
+                  data-summary={shape.summary ? '' : undefined}>
                   <IndexPost data={p} {index} showDate={showDateInCard} />
                 </div>
               {/each}
@@ -87,7 +112,13 @@
         <div class="issue-grid-clip">
           <div class="issue-grid">
             {#each posts as p, index (p.slug)}
-              <div class="post-wrapper" data-size={p.layoutSize ?? 'standard'}>
+              {@const shape = cardShape(p)}
+              <div
+                class="post-wrapper"
+                data-prominence={p.prominence ?? 'standard'}
+                data-placement={p.coverPlacement ?? 'stacked'}
+                data-cover={shape.cover ? '' : undefined}
+                data-summary={shape.summary ? '' : undefined}>
                 <IndexPost data={p} {index} showDate={showDateInCard} />
               </div>
             {/each}
@@ -166,13 +197,17 @@
    * with two competing syntaxes unsettled -- and it would not buy us anything
    * here, because designed boxes already tile.
    *
-   * --row-unit is the vertical quantum. Sizes are multiples of it:
-   *   brief    1 col x 2 rows   a paragraph
-   *   standard 1 col x 3 rows   headline, image, a few inches
-   *   feature  2 col x 4 rows   the story you want read
+   * --card-unit is the height the three sizes were tuned against. --row-unit,
+   * the actual grid quantum, is a quarter of it, so a card carrying less than
+   * the full complement can stop short without disturbing the ones that were
+   * already right. Tune --card-unit and every size scales together.
+   *
+   * Everything here is in rem, and the breakpoints below are scaled to match,
+   * so the whole page density follows the root font-size in global.scss.
    */
   .issue-grid {
-    --row-unit: 4.5rem;
+    --card-unit: 5.5rem;
+    --row-unit: calc(var(--card-unit) / 4);
 
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -192,8 +227,39 @@
    */
   .post-wrapper {
     --at-apply: 'w-full';
+    /*
+     * Headline and byline, nothing else. Everything below adds to this.
+     *
+     * 7 rather than 6 because a headline wrapping to three lines plus a byline
+     * does not fit in six -- and a card with nothing but a headline has no
+     * business clipping it.
+     */
+    --span: 7;
+
+    /*
+     * How many text columns this card's prose runs in, and how many of them a
+     * sidebar photo occupies.
+     *
+     * A card's text columns equal the number of *grid* columns it spans, so
+     * every column of type on the front page sits on one rhythm -- a standard
+     * story's single column is the same width as one column of a lead's four.
+     * That is what a newspaper page actually is, and it is the only way to make
+     * a photo "two columns wide" mean something: column-span in CSS multicol
+     * accepts all or nothing, so an exact column count has to come from the
+     * grid instead.
+     *
+     * Declared per breakpoint below rather than computed. calc() inside a
+     * `span` needs an integer and browsers are inconsistent about resolving one
+     * there, so these are spelled out.
+     */
+    --text-cols: 1;
+    --cover-cols: 1;
+    --body-cols: 1;
+    --col-gap: 1.25rem;
+
+    grid-row: span var(--span);
     position: relative;
-    padding: 10px;
+    padding: 0.625rem;
     box-sizing: border-box;
     min-width: 0;
     overflow: hidden;
@@ -234,9 +300,9 @@
   /*
    * Interior rules only, at every breakpoint and regardless of spans.
    *
-   * Shifting the whole grid up and left by the border width puts the first
-   * column's left borders and the first row's top borders outside .issue-section,
-   * which clips them. Interior borders are untouched. Nothing here has to know
+   * Shifting the whole grid up and left by the rule width puts the first
+   * column's left rules and the first row's top rules outside .issue-grid-clip,
+   * which clips them. Interior rules are untouched. Nothing here has to know
    * which cell begins a row, so a feature spanning two columns cannot break it
    * the way the old nth-child arithmetic did.
    */
@@ -244,48 +310,164 @@
     margin: -1px 0 0 -1px;
   }
 
-  /* Sizes collapse to width 1 here; only the height budget carries hierarchy. */
-  .post-wrapper[data-size='brief'] {
-    grid-row: span 2;
+  /*
+   * The height budget, in quarter-cards.
+   *
+   * The span is a function of the *prominence* and of what the card actually
+   * renders, not of prominence alone. A story with no cover and no summary is a
+   * headline and a byline whatever its Layout says, and giving it a standard's
+   * height just left a hole under it. So: start from the tier, then subtract
+   * the parts that are not there.
+   *
+   * With neither cover nor summary there is nothing tier-dependent left to
+   * size, which is why the bare case is 6 everywhere and needs no per-tier rule.
+   *
+   * The unqualified rules below are `standard`; the others override. Specificity
+   * does the work -- [data-cover][data-summary] outranks either alone, and a
+   * rule naming data-prominence outranks one that does not.
+   */
+  .post-wrapper[data-cover] {
+    --span: 12;
   }
-  .post-wrapper[data-size='standard'] {
-    grid-row: span 6;
+  .post-wrapper[data-summary] {
+    --span: 16;
   }
-  .post-wrapper[data-size='feature'] {
-    grid-row: span 8;
+  .post-wrapper[data-cover][data-summary] {
+    --span: 24;
+  }
+
+  /*
+   * Was 8, which clipped the byline on most briefs: a photo, a headline that
+   * wraps to two lines and a byline do not fit in 11rem. The one-line byline
+   * format buys back a line; this buys back the rest.
+   */
+  .post-wrapper[data-prominence='brief'][data-cover] {
+    --span: 11;
+  }
+  .post-wrapper[data-prominence='brief'][data-summary] {
+    --span: 10;
+  }
+  .post-wrapper[data-prominence='brief'][data-cover][data-summary] {
+    --span: 14;
+  }
+
+  .post-wrapper[data-prominence='feature'][data-cover] {
+    --span: 16;
+  }
+  .post-wrapper[data-prominence='feature'][data-summary] {
+    --span: 20;
+  }
+  .post-wrapper[data-prominence='feature'][data-cover][data-summary] {
+    --span: 32;
+  }
+
+  .post-wrapper[data-prominence='lead'][data-cover] {
+    --span: 20;
+  }
+  .post-wrapper[data-prominence='lead'][data-summary] {
+    --span: 14;
+  }
+  .post-wrapper[data-prominence='lead'][data-cover][data-summary] {
+    --span: 28;
+  }
+
+  /*
+   * Beside the text rather than above it, so the picture's height is shared
+   * with the prose instead of added to it. Only bites once there is more than
+   * one column to put it in -- see the breakpoint block below, where the card
+   * falls back to stacking.
+   */
+  .post-wrapper[data-prominence='lead'][data-placement='sidebar'][data-cover][data-summary] {
+    --span: 22;
   }
 
   #index-posts {
     --at-apply: 'flex flex-col items-center w-full';
   }
 
-  @media (min-width: 640px) {
+  /*
+   * Scaled down by a fifth from 640/900/1200/1600, to match the 80% root font
+   * size -- the column count has to arrive at the same *apparent* width as
+   * before, and smaller type means more columns fit. This is the part browser
+   * zoom does for free that a root font-size does not: em in a media query is
+   * relative to the browser's initial 16px, not to the value we set, so these
+   * thresholds cannot track --card-unit automatically and have to be restated.
+   */
+  /*
+   * A lead runs the full width of whatever the grid currently is -- `1 / -1`
+   * needs no breakpoint, because on a phone "the full row" is one column and
+   * the rule is simply a no-op. This is the whole argument for naming
+   * prominence rather than widths: the instruction survives the translation.
+   */
+  .post-wrapper[data-prominence='lead'] {
+    grid-column: 1 / -1;
+  }
+
+  /*
+   * Below the first breakpoint the sidebar arrangement stacks (see the
+   * media query in index_post.svelte), so its height budget goes back to
+   * matching a stacked lead.
+   */
+  @media (max-width: 511px) {
+    .post-wrapper[data-prominence='lead'][data-placement='sidebar'][data-cover][data-summary] {
+      --span: 28;
+    }
+  }
+
+  @media (min-width: 512px) {
     .issue-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     /* From here up, a feature earns width as well as height. */
-    .post-wrapper[data-size='feature'] {
+    .post-wrapper[data-prominence='feature'] {
       grid-column: span 2;
     }
 
+    .post-wrapper[data-prominence='feature'] {
+      --text-cols: 2;
+      --body-cols: 2;
+    }
+    .post-wrapper[data-prominence='lead'] {
+      --text-cols: 2;
+      --cover-cols: 1;
+      --body-cols: 1;
+    }
   }
 
-  @media (min-width: 900px) {
+  @media (min-width: 720px) {
     .issue-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-  }
 
-  @media (min-width: 1200px) {
-    .issue-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+    .post-wrapper[data-prominence='lead'] {
+      --text-cols: 3;
+      --cover-cols: 1;
+      --body-cols: 2;
     }
   }
 
-  @media (min-width: 1600px) {
+  @media (min-width: 960px) {
+    .issue-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .post-wrapper[data-prominence='lead'] {
+      --text-cols: 4;
+      --cover-cols: 2;
+      --body-cols: 2;
+    }
+  }
+
+  @media (min-width: 1280px) {
     .issue-grid {
       grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .post-wrapper[data-prominence='lead'] {
+      --text-cols: 5;
+      --cover-cols: 2;
+      --body-cols: 3;
     }
   }
 

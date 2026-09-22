@@ -107,15 +107,16 @@
   <link rel="canonical" href={`${siteConfig.url}/`} />
 </svelte:head>
 
-<div
-  itemscope
-  itemtype="https://schema.org/Blog"
-  itemprop="blog"
-  class="flex justify-center items-start max-w-[90rem] mx-auto px-4">
+<!--
+  Mirrors the masthead's info bar: `w-full px-8` outside, `max-w-7xl mx-auto`
+  inside. Written the same way rather than merely to the same number, so the
+  grid's outer edge lands on the bar's rule at every width.
+-->
+<div itemscope itemtype="https://schema.org/Blog" itemprop="blog" class="flex justify-center items-start w-full px-8">
   <div
     in:fly|global={{ y: 100, duration: 300, delay: 300 }}
     out:fly|global={{ y: -100, duration: 300 }}
-    class="h-feed min-h-[50vh] w-full">
+    class="h-feed min-h-[50vh] w-full max-w-7xl mx-auto">
     <IndexPosts posts={renderedPosts} separateByIssueDate={!isFilterMode} showDateInCard={isFilterMode} />
 
     {#if browser && hasMore}

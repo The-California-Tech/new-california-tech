@@ -1,5 +1,6 @@
 import type { TOC } from '$lib/types/toc';
 import type { Tags } from '$lib/types/tags';
+import type { BylineFormat, CoverFit, CoverPlacement, LayoutPreset, Prominence } from '$lib/utils/layout-preset';
 export namespace Post {
   export type Post = {
     slug: string;
@@ -21,10 +22,21 @@ export namespace Post {
     coverInPost?: boolean;
     coverCaption?: string;
     coverStyle: CoverStyle;
-    /** Space allocation on the front page. Drives grid spans. */
-    layoutSize?: LayoutSize;
+    /** The `Layout` property as chosen, kept for debugging and data-attrs. */
+    layoutPreset?: LayoutPreset;
+    /** Expanded from the preset. How much area the grid gives this story. */
+    prominence?: Prominence;
+    /** Expanded from the preset. Where the cover sits relative to the text. */
+    coverPlacement?: CoverPlacement;
+    /** Expanded from the preset. One line, or author and category stacked. */
+    bylineFormat?: BylineFormat;
+    /** From the picture's proportions, unless `Cover Fit` says otherwise. */
+    coverFit?: CoverFit;
     showPreviewSummary?: boolean;
-    /** Ordering within an issue; higher sorts earlier. Independent of size. */
+    /**
+     * Ordering within an issue; higher sorts earlier. Independent of the
+     * layout preset -- a Brief can still run above a Feature.
+     */
     layoutWeight?: number;
     options?: Array<string>;
     series_tag?: string;
@@ -40,15 +52,9 @@ export namespace Post {
     RIGHT = 'RIGHT',
     BOT = 'BOT',
     LEFT = 'LEFT',
+    /** Retired: the rendering branch was removed, and the converter no longer
+        accepts this value. Kept so old stored metadata still types. */
     IN = 'IN',
     NONE = 'NONE',
   }
-
-  /**
-   * How much page space a story gets. Purely spatial: it says nothing about
-   * whether there is a cover image or a summary, which are their own
-   * properties. `brief` was called `compact` when it also implied "no cover".
-   */
-  export type LayoutSize = 'brief' | 'standard' | 'feature';
-
 }
