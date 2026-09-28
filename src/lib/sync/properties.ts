@@ -59,3 +59,31 @@ export const GRANULAR_LAYOUT_PROPERTIES = [
   COVER_STYLE_PROPERTY,
   HIDE_SUMMARY_PROPERTY,
 ] as const;
+
+// ── columns read or written outside the layout machinery ─────────────────
+/** The title column of tech-article-staging. */
+export const TITLE_PROPERTY = 'Name';
+
+export const TAGS_PROPERTY = 'Tags';
+
+/** rich_text, editor-facing. /submit records who sent a piece here. */
+export const EDITORIAL_NOTES_PROPERTY = 'Editorial Notes';
+
+// ── Tags option names this app gives meaning to ──────────────────────────
+// Option names, not column names, but they drift the same way and fail the
+// same way: Notion invents a missing option rather than erroring, so a
+// misspelling here is a new, meaningless tag rather than a failure.
+
+/** Kept out of the sync entirely, and *deleted* from Postgres if present. */
+export const PRINT_ONLY_TAG = 'Print Only';
+export const ADVERTISEMENT_TAG = 'Advertisement';
+
+/**
+ * Kept out of the sync, but *not* deleted: an existing row on the site stays
+ * as it was, the same way a website page marked Draft keeps its live version.
+ * /submit sets it on every submission; an editor removes it to accept one.
+ */
+export const NO_SYNC_TAG = 'No Sync';
+
+/** Provenance only; the old site used it too, so it is on published pieces. */
+export const WEB_SUBMISSION_TAG = 'web submission';

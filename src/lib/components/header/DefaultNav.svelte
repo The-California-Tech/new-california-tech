@@ -33,6 +33,7 @@
     { name: 'Features', href: '/?tag=Features' },
     { name: 'All Tech Issues', href: '/issues', emphasizeTech: true },
     { name: 'All Categories', href: '/categories' },
+    { name: 'Submit', href: '/submit' },
     { name: 'About', href: '/about' },
   ];
 </script>

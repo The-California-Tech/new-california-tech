@@ -6,7 +6,7 @@
  */
 
 import { symbiont } from '$lib/symbiont';
-import type { RequestHandler } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, fetch }) => {
   const date = params.date;

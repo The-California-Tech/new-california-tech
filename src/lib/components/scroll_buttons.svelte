@@ -28,9 +28,13 @@
     }
   });
 
-  // Update scroll height when document changes
+  // Re-measured on every scroll, not once: this effect used to read nothing
+  // reactive, so it ran a single time at mount. Anything that grew afterwards
+  // -- the feed rendering, images loading, a client-side navigation to a
+  // longer page -- left the thresholds computed against the old height.
   $effect(() => {
     if (browser) {
+      void scrollY;
       scrollHeight = document.documentElement.scrollHeight;
     }
   });

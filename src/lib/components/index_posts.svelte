@@ -386,12 +386,17 @@
   }
 
   /*
-   * Scaled down by a fifth from 640/900/1200/1600, to match the 80% root font
-   * size -- the column count has to arrive at the same *apparent* width as
-   * before, and smaller type means more columns fit. This is the part browser
-   * zoom does for free that a root font-size does not: em in a media query is
-   * relative to the browser's initial 16px, not to the value we set, so these
-   * thresholds cannot track --card-unit automatically and have to be restated.
+   * 512 / 720 / 960 / 1280.
+   *
+   * Originally 640/900/1200/1600, scaled down by a fifth when the root font
+   * size was briefly 80%. That experiment was reverted; these were kept,
+   * because denser columns turned out to read better at full size too. So the
+   * numbers have a historical derivation and a current justification, and only
+   * the second one matters -- tune them by eye, not by arithmetic.
+   *
+   * They cannot be expressed in em to track --card-unit, incidentally: em in a
+   * media query resolves against the browser's initial 16px, never against a
+   * root font-size the page sets.
    */
   /*
    * A lead runs the full width of whatever the grid currently is -- `1 / -1`

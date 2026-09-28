@@ -37,6 +37,7 @@
 // which does not know about SvelteKit's aliases.
 import { symbiont } from '../src/lib/symbiont.js';
 import { generateThumbnailBuffer } from '../src/lib/sync/hooks/tech.js';
+import { SUBMISSION_MEDIA_PREFIX } from '../src/lib/utils/submission.js';
 import { uploadBufferToSupabase, cleanupUnusedMedia } from 'symbiont-cms/server';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
@@ -160,6 +161,15 @@ async function collectMetaReferences(): Promise<Set<string>> {
   return referenced;
 }
 
+/**
+ * Prefixes the sweep must never touch, beyond the library's own `issues/`.
+ *
+ * `submissions/` holds images from /submit. Their Notion rows are tagged
+ * No Sync until an editor accepts them, so no `pages` row references them
+ * yet, and the sweep would read every pending submission's images as garbage.
+ */
+const SWEEP_EXCLUDE = [SUBMISSION_MEDIA_PREFIX];
+
 async function runCleanup() {
   console.log('\n' + '='.repeat(64));
   console.log('MEDIA CLEANUP');
@@ -167,12 +177,14 @@ async function runCleanup() {
 
   // Always dry-run first, whatever the flags say: the result is what the guard
   // below inspects, and it is also what gets printed for review.
-  const preview = await cleanupUnusedMedia(supabase, { dryRun: true });
+  const preview = await cleanupUnusedMedia(supabase, { dryRun: true, excludePrefixes: SWEEP_EXCLUDE });
   console.log(
     `${preview.totalInBucket} objects in bucket, ${preview.referencedCount} referenced, ` +
       `${preview.deleted} unreferenced`,
   );
-  console.log('(the issues/ prefix is excluded by the library, so issue PDFs are never touched)');
+  console.log(
+    `(issues/ is excluded by the library and ${SWEEP_EXCLUDE.join(', ')} by this script, so issue PDFs and pending submissions are never touched)`,
+  );
 
   if (preview.deleted === 0) {
     console.log('Nothing to sweep.');
@@ -200,7 +212,7 @@ async function runCleanup() {
     return;
   }
 
-  const result = await cleanupUnusedMedia(supabase, { dryRun: false });
+  const result = await cleanupUnusedMedia(supabase, { dryRun: false, excludePrefixes: SWEEP_EXCLUDE });
   console.log(`\nDeleted ${result.deleted} objects.`);
   console.log('Note: image_metadata rows for the deleted paths are now stale; they are harmless');
   console.log('(the cover join simply misses) but can be pruned if you care.');

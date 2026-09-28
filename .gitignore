@@ -22,3 +22,5 @@ __unconfig_vite.config.js
 # images, staged on the way into Notion. Regenerable, and not the source of
 # truth for anything.
 gdoc-dump/
+
+.claude/

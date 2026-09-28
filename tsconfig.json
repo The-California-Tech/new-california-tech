@@ -13,6 +13,9 @@
     "types": ["vite/client"]
   },
   "include": [
+    "./.svelte-kit/ambient.d.ts",
+    "./.svelte-kit/env.d.ts",
+    "./.svelte-kit/non-ambient.d.ts",
     "./types/**/$types.d.ts",
     "./svelte.config.js",
     "./vite.config.js",

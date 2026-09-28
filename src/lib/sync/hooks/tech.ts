@@ -15,6 +15,10 @@ import {
   LAYOUT_PROPERTY as LAYOUT_PROPERTY_NAME,
   LAYOUT_WEIGHT_PROPERTY as LAYOUT_WEIGHT_PROPERTY_NAME,
   PROMINENCE_PROPERTY as PROMINENCE_PROPERTY_NAME,
+  ADVERTISEMENT_TAG,
+  NO_SYNC_TAG,
+  PRINT_ONLY_TAG,
+  TAGS_PROPERTY,
 } from '../properties.js';
 import {
   normalizeBylineFormat,
@@ -88,16 +92,22 @@ function expandHtmlCodeBlocks(content: string): string {
   });
 }
 
-function isPrintOnlyOrAdvertisement(ctx: HookContext): boolean {
-  const tags = ctx.page.properties.Tags as any;
+function hasAnyTag(ctx: HookContext, wanted: readonly string[]): boolean {
+  const tags = ctx.page.properties[TAGS_PROPERTY] as any;
+  const lowered = wanted.map((name) => name.toLowerCase());
   return (
-    tags?.multi_select?.some((tag: any) => {
-      const name = String(tag?.name ?? '')
-        .trim()
-        .toLowerCase();
-      return name === 'print only' || name === 'advertisement';
-    }) ?? false
+    tags?.multi_select?.some((tag: any) =>
+      lowered.includes(
+        String(tag?.name ?? '')
+          .trim()
+          .toLowerCase(),
+      ),
+    ) ?? false
   );
+}
+
+function isPrintOnlyOrAdvertisement(ctx: HookContext): boolean {
+  return hasAnyTag(ctx, [PRINT_ONLY_TAG, ADVERTISEMENT_TAG]);
 }
 
 function countWordsFromMarkdown(markdown: string): number {
@@ -217,6 +227,7 @@ export async function generateThumbnailBuffer(pdfUrl: string): Promise<Buffer> {
  *
  * These hooks customize page processing for the California Tech newspaper:
  * - Exclude Print Only and Advertisement articles from Supabase
+ * - Skip No Sync articles (web submissions awaiting review) without deleting
  * - Only publish articles with Status = "Published"
  * - Parse dates from Issue property with PST timezone
  * - Extract custom slug from Website Slug property
@@ -229,6 +240,19 @@ export const excludeAndDeletePrintOnlyHook: Hook<boolean> = {
   priority: 'override',
   fn: async (ctx: HookContext) => {
     if (!isPrintOnlyOrAdvertisement(ctx)) {
+      // Checked second so that Print Only still deletes when both are set.
+      // No Sync deliberately does not delete: it means "leave this alone", and
+      // an article already on the site should stay as it was -- the same
+      // semantics as a Draft website page. It is what keeps /submit's public,
+      // unreviewed rows out of Postgres until an editor removes the tag.
+      if (hasAnyTag(ctx, [NO_SYNC_TAG])) {
+        ctx.logger.info({
+          event: 'page_excluded_from_sync',
+          pageId: ctx.page.id,
+          reason: 'No Sync tag',
+        });
+        return false;
+      }
       return true;
     }
 
