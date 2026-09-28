@@ -69,6 +69,16 @@ export const TAGS_PROPERTY = 'Tags';
 /** rich_text, editor-facing. /submit records who sent a piece here. */
 export const EDITORIAL_NOTES_PROPERTY = 'Editorial Notes';
 
+/** select. Where the working copy of a piece lives (a Doc, InDesign, ...). */
+export const WHERE_IS_IT_PROPERTY = 'Where is it';
+
+/**
+ * The `Where is it` option for a piece whose text is the Notion page itself,
+ * which a /submit submission always is. Must match the existing option
+ * exactly -- a near-miss creates a new one.
+ */
+export const WHERE_IS_IT_NOTION_PAGE = 'This Notion Page';
+
 // ── Tags option names this app gives meaning to ──────────────────────────
 // Option names, not column names, but they drift the same way and fail the
 // same way: Notion invents a missing option rather than erroring, so a

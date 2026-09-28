@@ -29,6 +29,8 @@ import {
   TAGS_PROPERTY,
   TITLE_PROPERTY,
   WEB_SUBMISSION_TAG,
+  WHERE_IS_IT_NOTION_PAGE,
+  WHERE_IS_IT_PROPERTY,
 } from '$lib/sync/properties.js';
 import {
   SUBMISSION_IMAGE_LIMITS,
@@ -85,6 +87,7 @@ export async function createSubmission(input: SubmissionInput, now = new Date())
         [TITLE_PROPERTY]: { title: [{ text: { content: input.title } }] },
         [TAGS_PROPERTY]: { multi_select: tags.map((name) => ({ name })) },
         [EDITORIAL_NOTES_PROPERTY]: { rich_text: [{ text: { content: note } }] },
+        [WHERE_IS_IT_PROPERTY]: { select: { name: WHERE_IS_IT_NOTION_PAGE } },
       },
       // Notion's own markdown parser, as scripts/importGoogleDoc.ts uses. The
       // body has already been through stripMarkupTags, which matters here:
