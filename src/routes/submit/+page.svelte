@@ -78,7 +78,7 @@
         </p>
       {/if}
       <p class="mb-4 opacity-80">
-        Nothing is published without an editor's review. If you have photos to go with it, send them to
+        Nothing is published without an editor's review. If you have questions or follow-ups, send them to
         <a class="link" href="mailto:tech@caltech.edu">tech@caltech.edu</a>
         with the title of your piece.
       </p>
