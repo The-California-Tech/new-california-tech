@@ -95,5 +95,35 @@ export const ADVERTISEMENT_TAG = 'Advertisement';
  */
 export const NO_SYNC_TAG = 'No Sync';
 
-/** Provenance only; the old site used it too, so it is on published pieces. */
+/**
+ * Provenance only; the old site used it too, so it is on published pieces.
+ * Internal: never shown on the site (see INTERNAL_TAGS).
+ */
 export const WEB_SUBMISSION_TAG = 'web submission';
+
+/**
+ * Tags that are Notion bookkeeping, not sections of the paper. The sync drops
+ * them before they reach `pages.tags`, so no page, card, feed, category list
+ * or search ever sees one.
+ *
+ * Print Only and Advertisement are listed although such pages never sync at
+ * all: if that exclusion is ever loosened, they still must not surface as
+ * categories.
+ *
+ * `Web Only` (the piece did not run in print) is here because the site
+ * already hid it: post-converter filtered it alongside `web submission`
+ * before this list existed.
+ *
+ * Deliberately NOT a general tag cleanup (Brief, Priority! and the
+ * near-duplicate sections are a separate job). Only tags that are certainly
+ * internal belong here.
+ */
+export const WEB_ONLY_TAG = 'Web Only';
+
+export const INTERNAL_TAGS: readonly string[] = [
+  WEB_SUBMISSION_TAG,
+  WEB_ONLY_TAG,
+  NO_SYNC_TAG,
+  PRINT_ONLY_TAG,
+  ADVERTISEMENT_TAG,
+];

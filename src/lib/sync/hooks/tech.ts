@@ -16,6 +16,7 @@ import {
   LAYOUT_WEIGHT_PROPERTY as LAYOUT_WEIGHT_PROPERTY_NAME,
   PROMINENCE_PROPERTY as PROMINENCE_PROPERTY_NAME,
   ADVERTISEMENT_TAG,
+  INTERNAL_TAGS,
   NO_SYNC_TAG,
   PRINT_ONLY_TAG,
   TAGS_PROPERTY,
@@ -385,6 +386,27 @@ export const publishCheckHook: Hook<boolean> = {
     }
 
     return shouldPublish;
+  },
+};
+
+/**
+ * `Tags`, minus the internal ones (INTERNAL_TAGS in properties.ts).
+ *
+ * Replaces symbiont's tagsProperty slot rather than post-filtering it:
+ * metadata:tags composes with Collect, which concatenates every hook's array,
+ * so a later hook can add tags but never remove one. The slot is therefore
+ * left unset in symbiont.server.ts -- the default hook returns [] -- and this
+ * is the only source.
+ */
+export const publicTagsHook: Hook<string[]> = {
+  name: 'tech:metadata:tags',
+  event: 'metadata:tags',
+  fn: async (ctx: HookContext) => {
+    const internal = new Set(INTERNAL_TAGS.map((tag) => tag.toLowerCase()));
+    const tags = (ctx.page.properties[TAGS_PROPERTY] as any)?.multi_select ?? [];
+    return tags
+      .map((tag: any) => String(tag?.name ?? '').trim())
+      .filter((name: string) => name && !internal.has(name.toLowerCase()));
   },
 };
 

@@ -5,6 +5,7 @@ import {
   publishCheckHook,
   publishDateHook,
   articlePreviewMetadataHook,
+  publicTagsHook,
   htmlCodeEmbedHook,
   wordCountSyncHook,
   archiveIssueHooks,
@@ -16,7 +17,7 @@ import { layoutExpansionHooks } from '$lib/sync/hooks/layout-expansion.js';
 export const symbiontSync = createSymbiontServer(symbiont, {
   'tech-article-staging': {
     slugProperty: 'Website Slug',
-    tagsProperty: 'Tags',
+    // No tagsProperty: publicTagsHook reads Tags itself, to drop internal ones.
     authorsProperty: 'Authors',
     coverProperty: 'Cover Photo',
     summaryProperty: 'Website Summary',
@@ -29,7 +30,7 @@ export const symbiontSync = createSymbiontServer(symbiont, {
     publishDate: (ctx) => publishDateHook.fn(ctx),
     addMetadata: (ctx) => articlePreviewMetadataHook.fn(ctx),
     transformContent: (ctx) => htmlCodeEmbedHook.fn(ctx),
-    hooks: [wordCountSyncHook, ...layoutExpansionHooks, ...syncNoteHooks],
+    hooks: [publicTagsHook, wordCountSyncHook, ...layoutExpansionHooks, ...syncNoteHooks],
   },
   'tech-archives': {
     hooks: [...archiveIssueHooks, ...syncNoteHooks],

@@ -202,7 +202,11 @@ export function symbiontToTechArticle(post: TechPageRow, html?: string, toc?: an
     coverWidth,
     coverHeight,
     thumbnail,
-    tags: tags.filter((tag) => !['web submission', 'Web Only'].includes(tag)),
+    // Internal tags (`web submission`, `Web Only`, ...) used to be filtered
+    // here. They are now dropped by the sync before reaching pages.tags --
+    // INTERNAL_TAGS in sync/properties.ts -- so every reader of that column is
+    // covered, not only the ones that go through this converter.
+    tags,
     authors: Array.isArray(post.authors) ? post.authors : [],
 
     // Date field mapping
