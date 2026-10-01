@@ -1,3 +1,4 @@
+import { categoryPath } from '$lib/utils/categories';
 import type { RequestHandler } from '@sveltejs/kit';
 import { siteConfig } from '$config/site';
 import { symbiont } from '$lib/symbiont';
@@ -68,8 +69,9 @@ const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
       const categories = (post.tags ?? [])
         .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
         .map((tag) => {
-          const scheme = absoluteUrl(`?tag=${encodeURIComponent(tag)}`);
-          return `    <category term="${escapeXml(tag)}" scheme="${escapeXml(scheme)}" />`;
+          const path = categoryPath(tag);
+          const scheme = path ? ` scheme="${escapeXml(absoluteUrl(path))}"` : '';
+          return `    <category term="${escapeXml(tag)}"${scheme} />`;
         })
         .join('\n');
 

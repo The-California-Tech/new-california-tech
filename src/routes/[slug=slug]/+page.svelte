@@ -125,7 +125,7 @@
 
   <div id="post-bottom" class="flex-none flex flex-col max-w-[55rem] w-full xl:(rounded-b-2xl)">
     {#if post.tags && post.tags.length > 0}
-      <TagsSection tags={post.tags as any} />
+      <TagsSection tags={post.tags} />
     {/if}
 
     <div class="divider"></div>

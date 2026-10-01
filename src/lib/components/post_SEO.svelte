@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { authorPath } from '$lib/utils/authors';
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   import type { Asset } from '$generated/asset';
@@ -61,12 +62,14 @@
         : [],
       datePublished: post.published,
       dateModified: post.updated,
-      author: [
-        {
-          '@type': 'Person',
-          name: primaryAuthor,
-        },
-      ],
+      // Every credited writer, not just the first; and when there are none,
+      // the paper as an Organization -- it used to be typed a Person.
+      author: post.authors?.length
+        ? post.authors.map((name) => {
+            const path = authorPath(name);
+            return { '@type': 'Person', name, ...(path ? { url: new URL(path, siteConfig.url).href } : {}) };
+          })
+        : [{ '@type': 'Organization', name: siteConfig.title, url: siteConfig.url }],
     }) + '<'
   }/script>`}
 </svelte:head>

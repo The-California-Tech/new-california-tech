@@ -4,8 +4,8 @@
   import ImgZoom from '$lib/components/image_zoom.svelte';
   import tippy from '$lib/actions/tippy';
   import { lastUpdatedStr, defaultPublishedStr, defaultUpdatedStr } from '$lib/utils/timeFormat';
-  import AuthorAvatar from '$lib/components/image_avatar.svelte';
   import { strings } from '$lib/strings';
+  import AuthorLinks from '$lib/components/author_links.svelte';
 
   let { data }: { data: Post.Post } = $props();
   // Off by default -- see post-converter. Opt in per article with coverInPost.
@@ -17,20 +17,20 @@
     <a class="hidden u-url u-uid" href={new URL(data.slug, siteConfig.url).href}>
       {new URL(data.slug, siteConfig.url).href}
     </a>
-    <div class="p-author h-card flex items-center gap-1 pl-0 shrink-0">
+    <!--
+      One h-card per author, each linking to that writer's page. These used to
+      be <a rel="author" class="u-url u-uid" href={siteConfig.url}>, which to a
+      microformats parser asserted that every writer's identity URL was the
+      paper's homepage. Now the URL really is theirs; see author_links.svelte.
+
+      The avatar that sat here was QWER's personal-blog author photo. The Tech
+      sets no siteConfig.author, so it rendered its fallback -- a GitHub logo --
+      beside every byline, marked up as that author's u-photo.
+    -->
+    <div class="flex items-center gap-1 pl-0 shrink-0">
       {#if data.authors && data.authors.length > 0}
-        <AuthorAvatar
-          width="32px"
-          height="32px"
-          class="inline-block !w-8 !h-8 mr-1 object-cover aspect-1 rounded-full hover:rotate-[360deg] transition-transform duration-1000 ease-in-out" />
         <span class="font-bold text-base">
-          <!-- TODO: replace with author index -->
-          {#each data.authors as author, i (author)}
-            <a rel="author" href={siteConfig.url} class="u-url u-uid">
-              <span class="p-name">{author}</span>
-            </a>
-            {#if i < data.authors.length - 1}<span>,</span>{/if}
-          {/each}
+          <AuthorLinks authors={data.authors} microformats />
         </span>
       {/if}
     </div>

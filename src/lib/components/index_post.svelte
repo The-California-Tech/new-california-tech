@@ -3,6 +3,8 @@
   import type { Post } from '$lib/types/post';
   import { UserConfig } from '$config/QWER.config';
   import ImgBanner from '$lib/components/image_banner.svelte';
+  import AuthorLinks from '$lib/components/author_links.svelte';
+  import { categoryPath } from '$lib/utils/categories';
 
   const { data, index, showDate = false }: { data: Post.Post; index: number; showDate?: boolean } = $props();
 
@@ -13,7 +15,8 @@
   // (coverStyle IN) is its own arrangement and outranks placement.
   const useSidebar = $derived(data.coverPlacement === 'sidebar');
   const bylineFormat = $derived(data.bylineFormat ?? 'stacked');
-  const category = $derived(data.tags?.[0]);
+  const category = $derived(typeof data.tags?.[0] === 'string' ? data.tags[0] : undefined);
+  const categoryHref = $derived(category ? categoryPath(category) : null);
   const coverFit = $derived(data.coverFit ?? 'fill');
   const hasSummary = $derived(showPreviewSummary && Boolean(data.summary_html || data.summary));
 
@@ -89,11 +92,15 @@
       {#if bylineFormat === 'inline'}
         <p class="byline-line">
           {#if data.authors && data.authors.length > 0}
-            <span class="author" itemprop="author">{data.authors.join(', ')}</span>
+            <span class="author" itemprop="author"><AuthorLinks authors={data.authors} /></span>
           {/if}
           {#if category}
             <span class="sep" aria-hidden="true">·</span>
-            <span class="category">{category}</span>
+            <span class="category">
+              <svelte:element this={categoryHref ? 'a' : 'span'} class="category-link" href={categoryHref}>
+                {category}
+              </svelte:element>
+            </span>
           {/if}
           {#if showDate && formattedDate}
             <span class="sep" aria-hidden="true">·</span>
@@ -102,10 +109,14 @@
         </p>
       {:else}
         {#if data.authors && data.authors.length > 0}
-          <p class="author" itemprop="author">{data.authors.join(', ')}</p>
+          <p class="author" itemprop="author"><AuthorLinks authors={data.authors} /></p>
         {/if}
         {#if category}
-          <p class="category">{category}</p>
+          <p class="category">
+            <svelte:element this={categoryHref ? 'a' : 'span'} class="category-link" href={categoryHref}>
+              {category}
+            </svelte:element>
+          </p>
         {/if}
         {#if showDate && formattedDate}
           <p class="published-date">{formattedDate}</p>
@@ -462,6 +473,16 @@
 
   .category {
     --at-apply: 'm-0 op-70';
+  }
+
+  /* Like the author links: part of the byline, not body text. */
+  .category-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a.category-link:hover {
+    text-decoration: underline;
   }
 
   .published-date {

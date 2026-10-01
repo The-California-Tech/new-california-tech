@@ -27,10 +27,12 @@
 
   // Navigation sections - customize these!
   const sections = [
-    { name: 'News', href: '/?tag=News' },
-    { name: 'Sports', href: '/?tag=Sports' },
-    { name: 'Opinion', href: '/?tag=Opinion' },
-    { name: 'Features', href: '/?tag=Features' },
+    // Category pages, not /?tag= filters. "Features" is the section's name
+    // but the Notion tag is `Feature`: /?tag=Features matched nothing at all.
+    { name: 'News', href: '/categories/news' },
+    { name: 'Sports', href: '/categories/sports' },
+    { name: 'Opinion', href: '/categories/opinion' },
+    { name: 'Features', href: '/categories/feature' },
     { name: 'All Tech Issues', href: '/issues', emphasizeTech: true },
     { name: 'All Categories', href: '/categories' },
     { name: 'Submit', href: '/submit' },
@@ -45,8 +47,7 @@
       <a
         href={section.href}
         class="px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors"
-        class:font-bold={$page.url.searchParams.get('tag') === section.name ||
-          ($page.url.pathname === '/categories' && section.href === '/categories') ||
+        class:font-bold={$page.url.pathname === section.href ||
           ($page.url.pathname.startsWith('/issues') && section.href === '/issues')}>
         {#if section.emphasizeTech}
           All <em>Tech</em>
@@ -67,7 +68,7 @@
         <a
           href={section.href}
           class="block px-4 py-2 hover:bg-black/10 dark:hover:bg-white/10 first:rounded-t-lg last:rounded-b-lg"
-          class:font-bold={$page.url.searchParams.get('tag') === section.name ||
+          class:font-bold={$page.url.pathname === section.href ||
             ($page.url.pathname.startsWith('/issues') && section.href === '/issues')}>
           {#if section.emphasizeTech}
             All <em>Tech</em>
