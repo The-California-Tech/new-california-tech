@@ -28,7 +28,7 @@ begin
       'FAIL: public.homepage exists again -- it was dropped deliberately. Did a generated db diff get applied?';
   end if;
 
-  foreach fn in array array['list_homepage_posts', 'nearest_issue_date', 'list_unique_tags']
+  foreach fn in array array['list_homepage_posts', 'nearest_issue_date', 'list_unique_tags', 'list_authors', 'list_author_posts', 'list_categories', 'list_category_posts']
   loop
     if not exists (
       select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -116,6 +116,18 @@ begin
   end if;
   if not has_function_privilege('anon', 'public.nearest_issue_date(date)', 'EXECUTE') then
     raise exception 'FAIL: anon lacks EXECUTE on nearest_issue_date';
+  end if;
+  if not has_function_privilege('anon', 'public.list_authors(text)', 'EXECUTE') then
+    raise exception 'FAIL: anon lacks EXECUTE on list_authors';
+  end if;
+  if not has_function_privilege('anon', 'public.list_author_posts(text,text[],integer,integer)', 'EXECUTE') then
+    raise exception 'FAIL: anon lacks EXECUTE on list_author_posts';
+  end if;
+  if not has_function_privilege('anon', 'public.list_categories(text)', 'EXECUTE') then
+    raise exception 'FAIL: anon lacks EXECUTE on list_categories';
+  end if;
+  if not has_function_privilege('anon', 'public.list_category_posts(text,text[],integer,integer)', 'EXECUTE') then
+    raise exception 'FAIL: anon lacks EXECUTE on list_category_posts';
   end if;
 
   -- list_storage_objects_recursive must stay service-role only.
@@ -498,6 +510,118 @@ begin
   end if;
 
   raise notice 'OK  6. anon receives cover_width/cover_height (original bug is fixed)';
+end $$;
+
+
+-- ---------------------------------------------------------------------------
+-- 7. Author functions: trimming, matching, and RLS
+--
+--    'zz Author ' (trailing space) and 'zz Author' must be one author; an
+--    author whose only piece is embargoed must not be listed at all.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  n integer;
+  total integer;
+begin
+  insert into public.pages (page_id, title, slug, publish_at, updated_at,
+                            datasource_id, datasource_alias, tags, authors, meta, content)
+  values
+    ('zz-auth-1', 'A1', 'zz-auth-1', now() - interval '2 days', now(), 'test-ds', 'tech-article-staging',
+     '[]'::jsonb, '["zz Author"]'::jsonb, '{}'::jsonb, 'x'),
+    ('zz-auth-2', 'A2', 'zz-auth-2', now() - interval '1 day', now(), 'test-ds', 'tech-article-staging',
+     '[]'::jsonb, '["zz Author ", "zz Other"]'::jsonb, '{}'::jsonb, 'x'),
+    ('zz-auth-hidden', 'Embargoed', 'zz-auth-hidden', now() + interval '30 days', now(), 'test-ds',
+     'tech-article-staging', '[]'::jsonb, '["zz Embargoed Only"]'::jsonb, '{}'::jsonb, 'x');
+
+  set local role anon;
+
+  select article_count into n from public.list_authors('tech-article-staging') where name = 'zz Author';
+  if n is distinct from 2 then
+    reset role;
+    raise exception 'FAIL 7: list_authors counted % for "zz Author", expected 2 (trailing space not trimmed?)', n;
+  end if;
+
+  if exists (select 1 from public.list_authors('tech-article-staging') where name = 'zz Embargoed Only') then
+    reset role;
+    raise exception 'FAIL 7: list_authors lists an author whose only article is embargoed -- RLS not enforced';
+  end if;
+
+  select count(*), max(total_posts) into n, total
+  from public.list_author_posts('tech-article-staging', array['zz Author'], 1, 0);
+  if n <> 1 or total <> 2 then
+    reset role;
+    raise exception 'FAIL 7: list_author_posts returned % rows / total %, expected 1 / 2 (limit or window count wrong)', n, total;
+  end if;
+
+  select count(*) into n from public.list_author_posts('tech-article-staging', array['zz Embargoed Only'], 100, 0);
+  reset role;
+  if n <> 0 then
+    raise exception 'FAIL 7: anon saw % embargoed rows through list_author_posts', n;
+  end if;
+
+  -- The alias argument actually scopes: the same name under another datasource
+  -- is not counted.
+  insert into public.pages (page_id, title, slug, publish_at, updated_at,
+                            datasource_id, datasource_alias, tags, authors, meta, content)
+  values ('zz-auth-elsewhere', 'E', 'zz-auth-elsewhere', now() - interval '1 day', now(), 'test-ds',
+          'zz-other-datasource', '[]'::jsonb, '["zz Author"]'::jsonb, '{}'::jsonb, 'x');
+  set local role anon;
+  select article_count into n from public.list_authors('tech-article-staging') where name = 'zz Author';
+  reset role;
+  if n is distinct from 2 then
+    raise exception 'FAIL 7: list_authors counted % for "zz Author" after adding a row in another datasource, expected 2', n;
+  end if;
+
+  raise notice 'OK  7. author functions trim names, paginate, and respect RLS';
+end $$;
+
+
+-- ---------------------------------------------------------------------------
+-- 8. Category functions: the same guarantees as 7, for tags
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  n integer;
+  total integer;
+begin
+  insert into public.pages (page_id, title, slug, publish_at, updated_at,
+                            datasource_id, datasource_alias, tags, meta, content)
+  values
+    ('zz-cat-1', 'C1', 'zz-cat-1', now() - interval '2 days', now(), 'test-ds', 'tech-article-staging',
+     '["zz Section"]'::jsonb, '{}'::jsonb, 'x'),
+    ('zz-cat-2', 'C2', 'zz-cat-2', now() - interval '1 day', now(), 'test-ds', 'tech-article-staging',
+     '["zz Section ", "zz Other"]'::jsonb, '{}'::jsonb, 'x'),
+    ('zz-cat-hidden', 'Embargoed', 'zz-cat-hidden', now() + interval '30 days', now(), 'test-ds',
+     'tech-article-staging', '["zz Embargoed Section"]'::jsonb, '{}'::jsonb, 'x');
+
+  set local role anon;
+
+  select article_count into n from public.list_categories('tech-article-staging') where name = 'zz Section';
+  if n is distinct from 2 then
+    reset role;
+    raise exception 'FAIL 8: list_categories counted % for "zz Section", expected 2', n;
+  end if;
+
+  if exists (select 1 from public.list_categories('tech-article-staging') where name = 'zz Embargoed Section') then
+    reset role;
+    raise exception 'FAIL 8: list_categories lists a tag used only by an embargoed article -- RLS not enforced';
+  end if;
+
+  select count(*), max(total_posts) into n, total
+  from public.list_category_posts('tech-article-staging', array['zz Section'], 1, 0);
+  if n <> 1 or total <> 2 then
+    reset role;
+    raise exception 'FAIL 8: list_category_posts returned % rows / total %, expected 1 / 2', n, total;
+  end if;
+
+  select count(*) into n from public.list_category_posts('tech-article-staging', array['zz Embargoed Section'], 100, 0);
+  reset role;
+  if n <> 0 then
+    raise exception 'FAIL 8: anon saw % embargoed rows through list_category_posts', n;
+  end if;
+
+  raise notice 'OK  8. category functions trim tags, paginate, and respect RLS';
 end $$;
 
 
