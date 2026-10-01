@@ -87,6 +87,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # For the type-check against the migrated schema, below.
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
       - uses: supabase/setup-cli@v3
         with:
           version: latest
@@ -107,21 +118,23 @@ jobs:
           DB_URL="$(supabase status -o env | grep DB_URL | cut -d= -f2- | tr -d '"')"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/feed_sql_checks.sql
 
-      # src/lib/types/database.types.ts is generated from this same database, so
-      # a migration that changes a function's name, arguments or columns must
-      # come with regenerated types -- otherwise the typed rpc() calls in
-      # feed-query.ts / author-query.ts check against a schema that no longer
-      # exists. The PostgrestVersion line is ignored: it reports the server's
-      # PostgREST, and this local stack need not match production's.
-      - name: Generated database types are current
+      # The typed rpc() calls in feed-query.ts / listing-query.ts are checked
+      # against src/lib/types/database.types.ts. This step makes sure that
+      # holds against the schema the MIGRATIONS produce, not just against
+      # whatever was last committed: regenerate the types from this database,
+      # then type-check the app against them.
+      #
+      # Deliberately not a byte-for-byte diff of the committed file. The CLI's
+      # output varies by version in ways that do not matter -- formatting, and
+      # content such as a generated column typed `unknown` by one generator and
+      # `never` by another -- so a diff fails on noise. A misspelt function or
+      # argument fails the type-check. Cosmetic drift is printed, not fatal.
+      - name: App type-checks against the migrated schema
         run: |
           set -euo pipefail
-          supabase gen types typescript --local --schema public > "$RUNNER_TEMP/database.types.ts"
-          strip() { grep -v 'PostgrestVersion:' "$1"; }
-          if ! diff -u <(strip src/lib/types/database.types.ts) <(strip "$RUNNER_TEMP/database.types.ts"); then
-            echo "::error file=src/lib/types/database.types.ts::Stale. Run 'pnpm db:types' (or 'pnpm db:types:linked') and commit the result."
-            exit 1
-          fi
+          pnpm db:types
+          git --no-pager diff --stat -- src/lib/types/database.types.ts || true
+          pnpm check
 
       - name: Declarative schema matches migrations
         run: |

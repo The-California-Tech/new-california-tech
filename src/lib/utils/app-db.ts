@@ -9,7 +9,8 @@
  * failing at request time.
  *
  * Regenerate with `pnpm db:types` (local Supabase, from the migrations) or
- * `pnpm db:types:linked` (production). CI fails if the committed file is stale.
+ * `pnpm db:types:linked` (production). CI regenerates from the migrations and
+ * type-checks against the result, so an RPC the schema no longer has fails CI.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { symbiont } from '$lib/symbiont';
