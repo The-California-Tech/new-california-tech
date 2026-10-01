@@ -222,7 +222,12 @@ declare
   allowed text[] := array[
     'list_homepage_posts',
     'nearest_issue_date',
-    'list_unique_tags'
+    'list_unique_tags',
+    -- /authors and /categories (20260928210000, 20260928230000, 20261001120000)
+    'list_authors',
+    'list_author_posts',
+    'list_categories',
+    'list_category_posts'
   ];
   leaked text;
 begin
