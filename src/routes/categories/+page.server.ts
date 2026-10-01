@@ -1,37 +1,24 @@
-// packages/california-tech/src/routes/categories/+page.server.ts
 import type { PageServerLoad } from './$types';
-import { symbiont } from '$lib/symbiont';
-import { symbiontToTechArticle } from '$lib/utils/post-converter';
-import type { Tags } from '$lib/types/tags';
+import { appDb } from '$lib/utils/app-db';
+import { fetchCategories } from '$lib/utils/listing-query';
 
 export const prerender = false;
 
-export const load: PageServerLoad = async ({ fetch }) => {
-  try {
-    const postsFromDb = await symbiont.getAllPages({ fetch, limit: 1000 });
-    const allPosts = postsFromDb.map((post) => symbiontToTechArticle(post));
-
-    // Build tag statistics
-    const tagCounts = new Map<string, number>();
-
-    for (const post of allPosts) {
-      if (post.tags && Array.isArray(post.tags)) {
-        for (const tag of post.tags) {
-          if (typeof tag === 'string') {
-            tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-          }
-        }
-      }
-    }
-
-    // Convert to sorted array
-    const allTags = Array.from(tagCounts.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count); // Sort by count descending
-
-    return { allTags };
-  } catch (error) {
-    console.error('[categories/+page.server] Error loading categories:', error);
-    return { allTags: [] };
-  }
+/**
+ * Every category in use, from list_categories().
+ *
+ * This used to fetch getAllPages({ limit: 1000 }) -- across every datasource,
+ * archives and static pages included -- and count tags in JS, which silently
+ * stopped counting at the thousandth row and counted tags that were never
+ * article sections.
+ */
+export const load: PageServerLoad = async ({ fetch, setHeaders }) => {
+  const categories = await fetchCategories(appDb(fetch));
+  setHeaders({ 'cache-control': 'public, max-age=60, s-maxage=300' });
+  return {
+    // Most-used first, as before: this page is how readers find the sections.
+    categories: categories
+      .map(({ name, slug, articleCount }) => ({ name, slug, count: articleCount }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+  };
 };

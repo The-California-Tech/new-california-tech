@@ -1,6 +1,8 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { symbiont } from '$lib/symbiont';
+import { appDb } from '$lib/utils/app-db';
 import { buildIssueCards } from '$lib/utils/issues';
+import { fetchAuthors, fetchCategories } from '$lib/utils/listing-query';
 import {
   ARTICLE_ALIAS,
   SITE_PAGE_ALIAS,
@@ -25,6 +27,7 @@ const STATIC_ROUTES: Entry[] = [
   { loc: absoluteUrl(''), changefreq: 'daily', priority: '1.0' },
   { loc: absoluteUrl('issues'), changefreq: 'weekly', priority: '0.8' },
   { loc: absoluteUrl('categories'), changefreq: 'weekly', priority: '0.5' },
+  { loc: absoluteUrl('authors'), changefreq: 'weekly', priority: '0.5' },
   { loc: absoluteUrl('submit'), changefreq: 'yearly', priority: '0.3' },
 ];
 
@@ -45,7 +48,7 @@ const STATIC_ROUTES: Entry[] = [
  * pick its own canonical among them.
  */
 const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
-  const [articles, sitePages, issues] = await Promise.all([
+  const [articles, sitePages, issues, authors, categories] = await Promise.all([
     fetchAllPages(symbiont, { fetch, alias: ARTICLE_ALIAS }).catch((error) => {
       console.error('[sitemap.xml] articles failed:', error);
       return [];
@@ -56,6 +59,14 @@ const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
     }),
     buildIssueCards(fetch).catch((error) => {
       console.error('[sitemap.xml] issues failed:', error);
+      return [];
+    }),
+    fetchAuthors(appDb(fetch)).catch((error) => {
+      console.error('[sitemap.xml] authors failed:', error);
+      return [];
+    }),
+    fetchCategories(appDb(fetch)).catch((error) => {
+      console.error('[sitemap.xml] categories failed:', error);
       return [];
     }),
   ]);
@@ -91,6 +102,26 @@ const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
       // page that links it stays the stronger candidate for the same content.
       entries.push({ loc: absoluteUrl(`issues/${issue.date}.pdf`), changefreq: 'yearly', priority: '0.4' });
     }
+  }
+
+  for (const category of categories) {
+    entries.push({
+      loc: absoluteUrl(`categories/${encodeURIComponent(category.slug)}`),
+      lastmod: rfc3339(category.latestPublishAt),
+      changefreq: 'weekly',
+      priority: '0.5',
+    });
+  }
+
+  // Only page 1 of each author or category: later pages are pagination, which Google
+  // finds by following rel=next and does not want listed.
+  for (const author of authors) {
+    entries.push({
+      loc: absoluteUrl(`authors/${encodeURIComponent(author.slug)}`),
+      lastmod: rfc3339(author.latestPublishAt),
+      changefreq: 'monthly',
+      priority: '0.4',
+    });
   }
 
   // Belt and braces: a duplicate <loc> is a validation warning, and articles

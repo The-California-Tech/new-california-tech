@@ -1,4 +1,3 @@
-<!-- packages/california-tech/src/routes/categories/+page.svelte -->
 <script lang="ts">
   import { fade } from 'svelte/transition';
 
@@ -16,13 +15,13 @@
     <p class="text-lg opacity-80">Browse articles by topic</p>
   </header>
 
-  {#if data.allTags.length === 0}
+  {#if data.categories.length === 0}
     <p class="text-center text-lg opacity-60">No categories found.</p>
   {:else}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {#each data.allTags as tag (tag.name)}
+      {#each data.categories as tag (tag.slug)}
         <a
-          href="/?tag={tag.name}"
+          href="/categories/{encodeURIComponent(tag.slug)}"
           class="group p-4 border-2 border-black dark:border-white rounded-lg hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200">
           <div class="flex justify-between items-start mb-2">
             <h2 class="text-xl font-semibold">{tag.name}</h2>

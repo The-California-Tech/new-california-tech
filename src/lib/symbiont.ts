@@ -4,6 +4,14 @@ export const SUPABASE_URL = 'https://xguzskbxiptvhbyggkpl.supabase.co';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_6L-isfCogfHJxcnTT9WseA_U4GUHcAB';
 
 /**
+ * The articles datasource. Named once here, beside the config entry it names,
+ * for callers that pass it to SQL (listing-query.ts). syndication.ts, issues.ts
+ * and server/submission.ts still each declare their own copy; folding them into
+ * this one is a small cleanup that has not been done yet.
+ */
+export const ARTICLES_ALIAS = 'tech-article-staging';
+
+/**
  * Symbiont CMS client for California Tech
  *
  * This is the central configuration for the CMS.
@@ -27,7 +35,7 @@ export const symbiont = createSymbiontClient({
 
   databases: [
     {
-      alias: 'tech-article-staging',
+      alias: ARTICLES_ALIAS,
       dataSourceId: '6cc3888f-d9fa-4075-add9-b596e6fc44f3',
     },
     {
