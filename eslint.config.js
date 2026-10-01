@@ -28,7 +28,7 @@ export default [
     },
   },
   {
-    ignores: ['build/', '.svelte-kit/', 'dist/'],
+    ignores: ['build/', '.svelte-kit/', 'dist/', 'src/lib/types/database.types.ts'],
   },
   {
     rules: {

@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { symbiont } from '$lib/symbiont';
+import { appDb } from '$lib/utils/app-db';
 import { fetchFeedPage, FEED_BATCH_SIZE } from '$lib/utils/feed-query';
 import { parsePositiveInt } from '$lib/utils/post-pagination';
 
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
     // /api/posts/previews.
     const requestedCount = parsePositiveInt(url.searchParams.get('count'), FEED_BATCH_SIZE);
 
-    const page = await fetchFeedPage(symbiont.getSSRClient(fetch), {
+    const page = await fetchFeedPage(appDb(fetch), {
       query,
       tag,
       targetCount: requestedCount,

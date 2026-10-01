@@ -107,6 +107,22 @@ jobs:
           DB_URL="$(supabase status -o env | grep DB_URL | cut -d= -f2- | tr -d '"')"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/feed_sql_checks.sql
 
+      # src/lib/types/database.types.ts is generated from this same database, so
+      # a migration that changes a function's name, arguments or columns must
+      # come with regenerated types -- otherwise the typed rpc() calls in
+      # feed-query.ts / author-query.ts check against a schema that no longer
+      # exists. The PostgrestVersion line is ignored: it reports the server's
+      # PostgREST, and this local stack need not match production's.
+      - name: Generated database types are current
+        run: |
+          set -euo pipefail
+          supabase gen types typescript --local --schema public > "$RUNNER_TEMP/database.types.ts"
+          strip() { grep -v 'PostgrestVersion:' "$1"; }
+          if ! diff -u <(strip src/lib/types/database.types.ts) <(strip "$RUNNER_TEMP/database.types.ts"); then
+            echo "::error file=src/lib/types/database.types.ts::Stale. Run 'pnpm db:types' (or 'pnpm db:types:linked') and commit the result."
+            exit 1
+          fi
+
       - name: Declarative schema matches migrations
         run: |
           set -euo pipefail

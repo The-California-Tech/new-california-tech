@@ -13,6 +13,7 @@
  */
 import { symbiontToTechArticle, type TechPageRow } from '$lib/utils/post-converter';
 import type { Post } from '$lib/types/post';
+import type { AppDb } from '$lib/utils/app-db';
 
 export const FEED_BATCH_SIZE = 30;
 
@@ -46,28 +47,14 @@ export interface FeedQueryOptions {
   targetCount?: number;
 }
 
-/**
- * Structural type instead of `SupabaseClient` from '@supabase/supabase-js':
- * that package is a transitive dependency via symbiont-cms, not a direct one, so
- * importing its types here does not resolve.
- *
- * The loose `rpc` signature is also doing real work. `list_homepage_posts` is
- * newer than the generated Database types shipped by symbiont-cms, so a typed
- * client would reject the call outright. Regenerating database.types.ts in
- * symbiont-cms after applying the migration is what makes this narrowable.
- */
-type RpcCapable = {
-  rpc: (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => PromiseLike<{ data: FeedRow[] | null; error: { message: string } | null }>;
-};
-
-async function callListHomepagePosts(client: unknown, options: FeedQueryOptions, targetCount: number) {
-  const { data, error } = await (client as unknown as RpcCapable).rpc('list_homepage_posts', {
-    p_query: options.query?.trim() || null,
-    p_tag: options.tag?.trim() || null,
-    p_before_date: options.beforeDate?.trim() || null,
+async function callListHomepagePosts(client: AppDb, options: FeedQueryOptions, targetCount: number) {
+  const { data, error } = await client.rpc('list_homepage_posts', {
+    // undefined, not null, for "no filter": the generated Args type makes these
+    // optional rather than nullable, and PostgREST treats an omitted argument
+    // as its SQL default -- which is null for all three.
+    p_query: options.query?.trim() || undefined,
+    p_tag: options.tag?.trim() || undefined,
+    p_before_date: options.beforeDate?.trim() || undefined,
     p_issue_offset: Math.max(0, options.issueOffset ?? 0),
     p_target_count: targetCount,
   });
@@ -76,7 +63,9 @@ async function callListHomepagePosts(client: unknown, options: FeedQueryOptions,
     throw new Error(`list_homepage_posts failed: ${error.message}`);
   }
 
-  return data ?? [];
+  // Same caveat as listing-query.ts: generated function types are non-null and
+  // jsonb is Json, so the rows are narrowed by the converter, not here.
+  return (data ?? []) as unknown as FeedRow[];
 }
 
 export interface IssuePosts {
@@ -111,7 +100,7 @@ export interface IssuePosts {
  * into a short page instead of silently un-bounding this route again.
  */
 export async function fetchIssuePosts(
-  client: unknown,
+  client: AppDb,
   options: { issueDate: string; query?: string; tag?: string },
 ): Promise<IssuePosts> {
   const rows = await callListHomepagePosts(
@@ -131,7 +120,7 @@ export async function fetchIssuePosts(
   };
 }
 
-export async function fetchFeedPage(client: unknown, options: FeedQueryOptions = {}): Promise<FeedPage> {
+export async function fetchFeedPage(client: AppDb, options: FeedQueryOptions = {}): Promise<FeedPage> {
   const issueOffset = Math.max(0, options.issueOffset ?? 0);
   const targetCount = Math.max(1, options.targetCount ?? FEED_BATCH_SIZE);
 

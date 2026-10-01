@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { symbiont } from '$lib/symbiont';
+import { appDb } from '$lib/utils/app-db';
 import { fetchFeedPage, FEED_BATCH_SIZE } from '$lib/utils/feed-query';
 import { parsePositiveInt } from '$lib/utils/post-pagination';
 
@@ -20,7 +20,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
     const issueOffset = Math.max(0, parsePositiveInt(url.searchParams.get('issueOffset'), 0));
     const batchSize = parsePositiveInt(url.searchParams.get('limit'), FEED_BATCH_SIZE);
 
-    const page = await fetchFeedPage(symbiont.getSSRClient(fetch), {
+    const page = await fetchFeedPage(appDb(fetch), {
       query,
       tag,
       beforeDate,

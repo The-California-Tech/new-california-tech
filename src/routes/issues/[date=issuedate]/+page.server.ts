@@ -1,6 +1,6 @@
 import { redirect, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { symbiont } from '$lib/symbiont';
+import { appDb } from '$lib/utils/app-db';
 import { fetchIssuePosts } from '$lib/utils/feed-query';
 import { buildIssueCards, formatIssueLabel, resolveIssue } from '$lib/utils/issues';
 
@@ -72,7 +72,7 @@ export const load: PageServerLoad = async ({ fetch, params, url, cookies }) => {
     // A PDF-only issue has no website articles at all, so skip the query
     // entirely rather than asking for an issue that cannot come back.
     const issue = resolved.current.hasWebsite
-      ? await fetchIssuePosts(symbiont.getSSRClient(fetch), { issueDate, query, tag })
+      ? await fetchIssuePosts(appDb(fetch), { issueDate, query, tag })
       : { posts: [], issueDate: null, totalIssues: 0, totalPosts: 0 };
 
     // Under a filter, list_homepage_posts falls through to the next older issue
