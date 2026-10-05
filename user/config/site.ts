@@ -18,6 +18,7 @@ import type { DD } from '$lib/types/dd';
  * script only if the source art or background changes.
  */
 import SiteCover from '$assets/og-card.png';
+import { techConfig } from './tech';
 
 export const siteConfig: Site.Config = {
   url: 'https://tech.caltech.edu',
@@ -102,7 +103,7 @@ export const navConfig: Array<DD.Nav | DD.Link> = [
   },
   {
     name: 'Contact',
-    url: 'mailto:tech@caltech.edu',
+    url: `mailto:${techConfig.email}`,
     rel: 'external',
   },
 ];
@@ -124,7 +125,7 @@ export const mobilenavConfig: DD.Nav = {
     },
     {
       name: 'Contact',
-      url: 'mailto:tech@caltech.edu',
+      url: `mailto:${techConfig.email}`,
       rel: 'external',
     },
   ],

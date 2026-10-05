@@ -70,6 +70,8 @@ export interface CreatedSubmission {
   pageId: string;
   /** The row's `ID` as an editor sees it, e.g. TECH-812. Null if unreadable. */
   reference: string | null;
+  /** The page in Notion, for the editors' notification. */
+  notionUrl: string | null;
 }
 
 export async function createSubmission(input: SubmissionInput, now = new Date()): Promise<CreatedSubmission> {
@@ -96,7 +98,8 @@ export async function createSubmission(input: SubmissionInput, now = new Date())
     }),
   );
 
-  return { pageId: response.id, reference: readShortId(response) };
+  const notionUrl = typeof (response as { url?: unknown }).url === 'string' ? (response as { url: string }).url : null;
+  return { pageId: response.id, reference: readShortId(response), notionUrl };
 }
 
 /** Find the unique_id column without naming it; it is display-only here. */

@@ -15,6 +15,7 @@
  *   Supabase *is* in connect-src, which is what lets the browser upload there.
  */
 import { SUPABASE_PUBLISHABLE_KEY } from '$lib/symbiont';
+import { techConfig } from '$config/tech';
 import { SUBMISSION_IMAGE_LIMITS, SUBMISSION_IMAGE_TYPES } from '$lib/utils/submission';
 
 export interface UploadedImage {
@@ -90,7 +91,7 @@ async function uploadOriginal(blob: Blob): Promise<UploadedImage> {
   }
   if (blob.size > SUBMISSION_IMAGE_LIMITS.uploadBytes) {
     const mb = Math.round(SUBMISSION_IMAGE_LIMITS.uploadBytes / (1024 * 1024));
-    throw new ImageRehostError(`One image is over ${mb} MB. Please send it to tech@caltech.edu instead.`);
+    throw new ImageRehostError(`One image is over ${mb} MB. Please send it to ${techConfig.email} instead.`);
   }
 
   const { path, signedUrl } = await call<{ path: string; signedUrl: string }>({

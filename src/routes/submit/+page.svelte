@@ -4,6 +4,7 @@
   import { fade } from 'svelte/transition';
   import type { ActionData } from './$types';
   import '$lib/styles/prose.scss';
+  import { techConfig } from '$config/tech';
   import SubmissionEditor from '$lib/components/submit/SubmissionEditor.svelte';
   import { clearDraft, loadDraft, saveDraft } from '$lib/components/submit/draft';
   import { HONEYPOT_FIELD, SUBMISSION_CATEGORIES, SUBMISSION_LIMITS } from '$lib/utils/submission';
@@ -71,6 +72,12 @@
   {#if sent}
     <section class="p-6 border-2 border-black dark:border-white rounded-lg" role="status" in:fade>
       <h2 class="text-2xl font-bold mb-2">Thank you — your piece is with the editors.</h2>
+      {#if form?.success && form.emailedTo}
+        <p class="mb-2">
+          We've sent a confirmation to <strong>{form.emailedTo}</strong>
+          — if it isn't in your inbox in a few minutes, check your spam folder.
+        </p>
+      {/if}
       {#if form?.success && form.reference}
         <p class="mb-2">
           Your reference is <strong class="font-mono">{form.reference}</strong>
@@ -78,8 +85,10 @@
         </p>
       {/if}
       <p class="mb-4 opacity-80">
-        Nothing is published without an editor's review. If you have questions or follow-ups, send them to
-        <a class="link" href="mailto:tech@caltech.edu">tech@caltech.edu</a>
+        Nothing is published without an editor's review. For questions or follow-ups,
+        {#if form?.success && form.emailedTo}reply to the confirmation, or{/if}
+        write to
+        <a class="link" href="mailto:{techConfig.email}">{techConfig.email}</a>
         with the title of your piece.
       </p>
       <a href="/submit" class="link" data-sveltekit-reload>Submit another piece</a>
@@ -213,7 +222,7 @@
         </button>
         <p class="text-sm opacity-70">
           Problems? Email
-          <a class="link" href="mailto:tech@caltech.edu">tech@caltech.edu</a>
+          <a class="link" href="mailto:{techConfig.email}">{techConfig.email}</a>
         </p>
       </div>
     </form>
