@@ -29,6 +29,7 @@
   const sections = [
     // Category pages, not /?tag= filters. "Features" is the section's name
     // but the Notion tag is `Feature`: /?tag=Features matched nothing at all.
+    { name: 'Home', href: '/' },
     { name: 'News', href: '/categories/news' },
     { name: 'Sports', href: '/categories/sports' },
     { name: 'Opinion', href: '/categories/opinion' },
