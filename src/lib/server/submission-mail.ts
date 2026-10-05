@@ -69,22 +69,42 @@ async function getTransporter(config: MailConfig): Promise<Transporter> {
 }
 
 /**
- * The submitter's copy.
- *
- * FIXED WORDING ON PURPOSE. The form accepts any caltech.edu address, so
- * anything typed into it would be text our account delivers to an address of
- * the sender's choosing: put the title or body in here and the form becomes a
- * way to send arbitrary text to any Caltech inbox from the paper -- phishing
- * that looks like it came from the Tech. The reference number is ours, so it
- * is the one specific thing this message carries. The editors' copy, which
- * goes only to the paper, can carry the details.
+ * Something that would make a title a link: a scheme, `www.`, a bare domain
+ * with a common TLD, or an email address. Deliberately broad -- a false
+ * positive only costs the title its place in one email.
  */
-function confirmationText(reference: string | null): string {
-  const ref = reference ? `Your reference is ${reference}. ` : '';
+const LINKISH =
+  /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|@|\b[a-z0-9-]+\.(?:com|net|org|io|co|edu|gov|ly|me|app|dev|xyz|info|biz|link|site|online|top|ru|cn)\b)/i;
+
+/**
+ * The submitter's title, if it is safe to repeat back to them.
+ *
+ * The form accepts any caltech.edu address, so whatever this email repeats is
+ * text the paper's account delivers to an inbox of the submitter's choosing.
+ * The body is never repeated. The title is short, one line (validateSubmission
+ * collapses it) and rate-limited, so the realistic abuse is a link-bearing
+ * title used as phishing that appears to come from the Tech. A title that looks
+ * like it carries a link or an address is therefore left out; everything else
+ * goes through, quoted, so it reads as theirs rather than as our words.
+ */
+export function confirmableTitle(title: string): string | null {
+  const trimmed = title.trim();
+  if (!trimmed || LINKISH.test(trimmed)) return null;
+  return trimmed;
+}
+
+/**
+ * The submitter's copy: fixed wording, the reference number (ours), and the
+ * title when confirmableTitle allows it. The editors' copy, which goes only to
+ * the paper, carries the rest.
+ */
+function confirmationText(reference: string | null, title: string | null): string {
+  const what = title ? `your submission, “${title}”` : 'your submission';
+  const ref = reference ? ` Your reference is ${reference}.` : '';
   return [
     'Thank you for writing for The California Tech.',
     '',
-    `We have received your submission. ${ref}The editors read every piece and will be in touch.`,
+    `We have received ${what}.${ref} The editors read every piece and will be in touch.`,
     '',
     'Nothing is published without an editor’s review. To follow up, reply to this email; it reaches the editors.',
     '',
@@ -129,7 +149,7 @@ export async function sendSubmissionEmails(input: SubmissionInput, created: Crea
         to: input.email,
         replyTo: config.editors,
         subject: `We received your submission${created.reference ? ` (${created.reference})` : ''}`,
-        text: confirmationText(created.reference),
+        text: confirmationText(created.reference, confirmableTitle(input.title)),
       }),
       mailer.sendMail({
         from,
