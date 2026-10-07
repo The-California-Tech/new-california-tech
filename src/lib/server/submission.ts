@@ -1,15 +1,28 @@
 /**
- * /submit's write path: one public form post becomes one Notion page in
- * tech-article-staging.
+ * /submit's write path: one public form post becomes one article in
+ * tech-article-staging, owned by the web editor, with an edit link for the
+ * writer.
  *
  * Under `$lib/server` so SvelteKit refuses to bundle it for the browser -- it
  * holds the Notion token.
  *
- * WHY STAGING AND NOT A SEPARATE INBOX
- *   Editors triage where they already work. The row carries `No Sync`, which
- *   the sync's page:should-sync hook skips *without deleting*, so an
- *   unreviewed submission never reaches Postgres however many times the
- *   automation fires on it. Accepting a piece is removing that tag.
+ * WHERE THINGS LIVE
+ *   The Notion page carries the properties editors work with (Status, Layout,
+ *   Authors...) and Where is it = Web Editor. Its body is only a link to the
+ *   web editor -- the same edit link the writer gets, also put in Info. The
+ *   text lives in pages.content, which the web editor writes and the sync
+ *   leaves alone (sync/hooks/content-source.ts). Moving Where is it to any
+ *   other value hands the text to Notion and stops the link until it is moved
+ *   back. Unpublished rows have publish_at null, so RLS keeps them private.
+ *
+ * ORDER, AND THE FALLBACK
+ *   The `pages` row is keyed on the Notion page id, so the page comes first;
+ *   then symbiont builds the row (syncPage) and the text and links are added.
+ *   If anything after the Notion page fails, the text is written into the
+ *   Notion page and Where is it set back to Notion: the submission becomes
+ *   an ordinary Notion-owned one and is not lost, it just has no edit link.
+ *   Only if that also fails does the writer see an error (their draft is still
+ *   in their browser).
  *
  * WHY THE SUBMITTER GOES IN EDITORIAL NOTES, NOT AUTHORS
  *   `Authors` is a multi_select, and Notion creates a missing option rather
@@ -20,18 +33,31 @@
  */
 import { Client } from '@notionhq/client';
 import { randomUUID } from 'node:crypto';
-import { env } from '$env/dynamic/private';
-import { uploadBufferToSupabase, withNotionRetry } from 'symbiont-cms/server';
-import { symbiont } from '$lib/symbiont.js';
+import {
+  createPageFromMarkdown,
+  replacePageMarkdown,
+  requireEnvVar,
+  syncPage,
+  uploadBufferToSupabase,
+  withNotionRetry,
+} from 'symbiont-cms/server';
+import { ARTICLES_ALIAS, symbiont } from '$lib/symbiont.js';
+import { symbiontSync } from '$lib/symbiont.server.js';
+import { adminDb } from '$lib/server/admin-db.js';
+import { newShareToken, shareUrl, storeShareLinks } from '$lib/server/share-links.js';
+import { infoWithEditLink, placeholderBody } from '$lib/server/web-editor.js';
 import {
   EDITORIAL_NOTES_PROPERTY,
-  NO_SYNC_TAG,
+  INFO_PROPERTY,
   TAGS_PROPERTY,
   TITLE_PROPERTY,
   WEB_SUBMISSION_TAG,
   WHERE_IS_IT_NOTION_PAGE,
   WHERE_IS_IT_PROPERTY,
+  WHERE_IS_IT_WEB_EDITOR,
+  WORD_COUNT_PROPERTY,
 } from '$lib/sync/properties.js';
+import { countWordsFromMarkdown } from '$lib/utils/word-count.js';
 import {
   SUBMISSION_IMAGE_LIMITS,
   SUBMISSION_IMAGE_TYPES,
@@ -40,23 +66,9 @@ import {
   type SubmissionInput,
 } from '$lib/utils/submission.js';
 
-/**
- * Through SvelteKit's `$env`, not symbiont's requireEnvVar. That one reads
- * `process.env`, which Vite's dev server does not populate from `.env` -- so
- * it works on Vercel and fails locally, and /submit is exercised locally far
- * more often than the sync is.
- */
-function secret(name: 'NOTION_TOKEN' | 'SUPABASE_SERVICE_ROLE_KEY'): string {
-  const value = env[name];
-  if (!value) throw new Error(`Missing required environment variable '${name}'.`);
-  return value;
-}
-
-const STAGING_ALIAS = 'tech-article-staging';
-
-function stagingDataSourceId(): string {
-  const match = symbiont.config.databases.find((db) => db.alias === STAGING_ALIAS);
-  if (!match) throw new Error(`${STAGING_ALIAS} is not configured in src/lib/symbiont.ts`);
+function articlesDataSourceId(): string {
+  const match = symbiont.config.databases.find((db) => db.alias === ARTICLES_ALIAS);
+  if (!match) throw new Error(`${ARTICLES_ALIAS} is not configured in src/lib/symbiont.ts`);
   return match.dataSourceId;
 }
 
@@ -72,34 +84,82 @@ export interface CreatedSubmission {
   reference: string | null;
   /** The page in Notion, for the editors' notification. */
   notionUrl: string | null;
+  /** The writer's edit link; null if the submission fell back to Notion-owned. */
+  editUrl: string | null;
 }
 
 export async function createSubmission(input: SubmissionInput, now = new Date()): Promise<CreatedSubmission> {
-  const notion = new Client({ auth: secret('NOTION_TOKEN') });
+  const notion = new Client({ auth: requireEnvVar('NOTION_TOKEN') });
+  const editToken = newShareToken();
 
-  const tags = [NO_SYNC_TAG, WEB_SUBMISSION_TAG, ...(input.category ? [input.category] : [])];
+  const tags = [WEB_SUBMISSION_TAG, ...(input.category ? [input.category] : [])];
   const note = `Submitted via /submit by ${input.name} <${input.email}> on ${PACIFIC_STAMP.format(now)} PT.`;
 
   // Deliberately no Status: the new row takes the database's default, which
   // is wherever the editors' triage view already looks.
-  const response = await withNotionRetry(() =>
-    notion.pages.create({
-      parent: { type: 'data_source_id', data_source_id: stagingDataSourceId() },
-      properties: {
-        [TITLE_PROPERTY]: { title: [{ text: { content: input.title } }] },
-        [TAGS_PROPERTY]: { multi_select: tags.map((name) => ({ name })) },
-        [EDITORIAL_NOTES_PROPERTY]: { rich_text: [{ text: { content: note } }] },
-        [WHERE_IS_IT_PROPERTY]: { select: { name: WHERE_IS_IT_NOTION_PAGE } },
-      },
-      // Notion's own markdown parser, as scripts/importGoogleDoc.ts uses. The
-      // body has already been through stripMarkupTags, which matters here:
-      // this dialect treats XML-like tags as mentions and page references.
-      markdown: input.body,
-    }),
-  );
+  const { id: pageId, page } = await createPageFromMarkdown(notion, {
+    dataSourceId: articlesDataSourceId(),
+    properties: {
+      [TITLE_PROPERTY]: { title: [{ text: { content: input.title } }] },
+      [TAGS_PROPERTY]: { multi_select: tags.map((name) => ({ name })) },
+      [EDITORIAL_NOTES_PROPERTY]: { rich_text: [{ text: { content: note } }] },
+      // The switch: the web editor owns the body (sync/hooks/content-source.ts).
+      [WHERE_IS_IT_PROPERTY]: { select: { name: WHERE_IS_IT_WEB_EDITOR } },
+      // The edit link, where editors can find it too. Also tells the sync this
+      // page is already set up, so its first sync is not taken for a take-in.
+      [INFO_PROPERTY]: { rich_text: infoWithEditLink([], shareUrl(editToken)) },
+      // The sync's word-count hook never sees a web-owned body, so it is set
+      // here and on every /share save instead.
+      [WORD_COUNT_PROPERTY]: { rich_text: [{ text: { content: String(countWordsFromMarkdown(input.body)) } }] },
+    },
+    markdown: placeholderBody(shareUrl(editToken)),
+  });
 
-  const notionUrl = typeof (response as { url?: unknown }).url === 'string' ? (response as { url: string }).url : null;
-  return { pageId: response.id, reference: readShortId(response), notionUrl };
+  const created = {
+    pageId,
+    reference: readShortId(page),
+    notionUrl: typeof page.url === 'string' ? page.url : null,
+  };
+
+  try {
+    // Builds the row through the normal pipeline. Its return value is not the
+    // test of success: if the webhook got there first, processPage reports the
+    // page unchanged and returns false. The content write below is the test.
+    await syncPage(symbiontSync, ARTICLES_ALIAS, pageId);
+
+    const { data, error } = await adminDb()
+      .from('pages')
+      .update({ content: input.body })
+      .eq('page_id', pageId)
+      .select('page_id');
+    if (error) throw new Error(`content write failed: ${error.message}`);
+    if (!data || data.length !== 1) throw new Error('the sync did not create a row for the new page');
+
+    await storeShareLinks(pageId, [{ token: editToken, readOnly: false }]);
+
+    return { ...created, editUrl: shareUrl(editToken) };
+  } catch (error) {
+    console.error('[submit] web_ownership_failed: falling back to a Notion-owned page', {
+      pageId,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    // Notion then owns the text, so the content-source hooks sync it normally.
+    // The body goes first: if the property write then failed, the page would
+    // still say Web Editor, but with the real text in it rather than a link.
+    await replacePageMarkdown(notion, pageId, input.body);
+    await withNotionRetry(() =>
+      notion.pages.update({
+        page_id: pageId,
+        properties: {
+          [WHERE_IS_IT_PROPERTY]: { select: { name: WHERE_IS_IT_NOTION_PAGE } },
+          // Its edit link may never have been stored; a dead link is worse than
+          // none. Info held nothing else yet -- the page is seconds old.
+          [INFO_PROPERTY]: { rich_text: [] },
+        },
+      }),
+    );
+    return { ...created, editUrl: null };
+  }
 }
 
 /** Find the unique_id column without naming it; it is display-only here. */
@@ -154,7 +214,7 @@ export interface StoredImage {
 }
 
 function serviceClient() {
-  return symbiont.getSSRClient(undefined, secret('SUPABASE_SERVICE_ROLE_KEY'));
+  return symbiont.getSSRClient(undefined, requireEnvVar('SUPABASE_SERVICE_ROLE_KEY'));
 }
 
 /** Step 1. */

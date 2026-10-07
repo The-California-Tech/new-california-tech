@@ -98,17 +98,28 @@ export function confirmableTitle(title: string): string | null {
  * title when confirmableTitle allows it. The editors' copy, which goes only to
  * the paper, carries the rest.
  */
-function confirmationText(reference: string | null, title: string | null): string {
-  const what = title ? `your submission, “${title}”` : 'your submission';
+function confirmationText(reference: string | null, title: string | null, editUrl: string | null): string {
+  const what = title ? `your submission, \u201c${title}\u201d` : 'your submission';
   const ref = reference ? ` Your reference is ${reference}.` : '';
+  // The edit link is ours, not the submitter's text, so it is safe to send --
+  // and it is the reason to keep this email: it is the only way back in.
+  const edit = editUrl
+    ? [
+        '',
+        'You can keep working on it until the editors take it over:',
+        editUrl,
+        'Anyone with this link can edit your piece, so keep it to yourself.',
+      ]
+    : [];
   return [
     'Thank you for writing for The California Tech.',
     '',
     `We have received ${what}.${ref} The editors read every piece and will be in touch.`,
+    ...edit,
     '',
-    'Nothing is published without an editor’s review. To follow up, reply to this email; it reaches the editors.',
+    'Nothing is published without an editor\u2019s review. To follow up, reply to this email; it reaches the editors.',
     '',
-    '— The California Tech',
+    '\u2014 The California Tech',
   ].join('\n');
 }
 
@@ -149,7 +160,7 @@ export async function sendSubmissionEmails(input: SubmissionInput, created: Crea
         to: input.email,
         replyTo: config.editors,
         subject: `We received your submission${created.reference ? ` (${created.reference})` : ''}`,
-        text: confirmationText(created.reference, confirmableTitle(input.title)),
+        text: confirmationText(created.reference, confirmableTitle(input.title), created.editUrl),
       }),
       mailer.sendMail({
         from,

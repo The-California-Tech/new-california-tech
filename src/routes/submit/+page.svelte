@@ -78,6 +78,18 @@
           — if it isn't in your inbox in a few minutes, check your spam folder.
         </p>
       {/if}
+      {#if form?.success && form.editUrl}
+        <div class="my-4 p-4 border-2 border-dashed border-black/40 dark:border-white/40 rounded-lg">
+          <p class="mb-2 font-semibold">You can keep working on it until the editors take it over.</p>
+          <p class="mb-2">
+            <a class="link break-all" href={form.editUrl}>Open your piece</a>
+            and bookmark that page: it is the only way back in, and anyone with the link can edit, so keep it to yourself.
+          </p>
+          {#if form.emailedTo}
+            <p class="text-sm opacity-70">The link is in your confirmation email too.</p>
+          {/if}
+        </div>
+      {/if}
       {#if form?.success && form.reference}
         <p class="mb-2">
           Your reference is <strong class="font-mono">{form.reference}</strong>

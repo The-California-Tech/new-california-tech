@@ -15,6 +15,16 @@ import {
 // prerenders by default.
 export const prerender = false;
 
+/**
+ * Vercel function time limit, in seconds. A submission is several round trips
+ * in one request -- create the Notion page, sync it (which itself reads and
+ * writes Notion), write the body and links, then up to 8s of email -- which can
+ * outrun the platform default. Generous on purpose: the slow case is Notion
+ * rate-limiting us, and failing the request then would lose nothing but would
+ * tell the writer their piece was not sent when it was.
+ */
+export const config = { maxDuration: 60 };
+
 const FIELDS: SubmissionField[] = ['name', 'email', 'title', 'category', 'body'];
 
 type FormErrors = Partial<Record<SubmissionField | 'form', string>>;
@@ -26,7 +36,7 @@ export const actions: Actions = {
     // Tripped: look successful, write nothing. Telling a bot it failed only
     // teaches it which field to leave empty.
     if (String(form.get(HONEYPOT_FIELD) ?? '').trim()) {
-      return { success: true as const, reference: null, emailedTo: null };
+      return { success: true as const, reference: null, emailedTo: null, editUrl: null };
     }
 
     const raw = Object.fromEntries(FIELDS.map((key) => [key, form.get(key) ?? '']));
@@ -61,6 +71,7 @@ export const actions: Actions = {
         reference: created.reference,
         // Their own address, back to them; shown only if the mail really went.
         emailedTo: confirmed ? result.value.email : null,
+        editUrl: created.editUrl,
       };
     } catch (error) {
       // Logged without the submission itself: it holds a name and an email.

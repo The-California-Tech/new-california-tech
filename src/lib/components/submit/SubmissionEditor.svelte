@@ -42,6 +42,12 @@
     describedBy?: string;
     /** True while any image is still uploading; the piece is not ready to send. */
     busy?: boolean;
+    /**
+     * Fall back to the /submit draft in localStorage when `markdown` is empty.
+     * Off on /share, where the server copy is the piece and a stray /submit
+     * draft from the same browser must not leak into someone's article.
+     */
+    restoreDraft?: boolean;
   }
 
   let {
@@ -52,6 +58,7 @@
     invalid = false,
     describedBy,
     busy = $bindable(false),
+    restoreDraft = true,
   }: Props = $props();
 
   let host = $state<HTMLDivElement>();
@@ -166,7 +173,7 @@
 
     // `markdown` already holds whatever was typed into the textarea before we
     // got here, or the server's copy; failing both, the saved draft.
-    const start = markdown.trim() || loadDraft().body || '';
+    const start = markdown.trim() || (restoreDraft ? loadDraft().body : '') || '';
 
     editor = new Editor({
       element: host,

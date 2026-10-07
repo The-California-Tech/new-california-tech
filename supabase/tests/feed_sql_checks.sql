@@ -630,6 +630,48 @@ begin
 end $$;
 
 
+-- ---------------------------------------------------------------------------
+-- 9. share_links is server-only
+--
+--    It holds the hashes behind every edit link. anon and authenticated must
+--    have no privilege on it at all, and RLS must be on as a second wall.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  priv text;
+begin
+  foreach priv in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']
+  loop
+    if has_table_privilege('anon', 'public.share_links', priv)
+       or has_table_privilege('authenticated', 'public.share_links', priv) then
+      raise exception 'FAIL 9: anon or authenticated has % on public.share_links', priv;
+    end if;
+  end loop;
+
+  if not (select relrowsecurity from pg_class where oid = 'public.share_links'::regclass) then
+    raise exception 'FAIL 9: RLS is off on public.share_links';
+  end if;
+
+  if not has_table_privilege('service_role', 'public.share_links', 'INSERT')
+     or not has_table_privilege('service_role', 'public.share_links', 'SELECT') then
+    raise exception 'FAIL 9: service_role cannot read or write public.share_links -- the share routes would fail';
+  end if;
+
+  -- One edit link per article.
+  insert into public.pages (page_id, title, slug, publish_at, updated_at, datasource_id, datasource_alias, tags, meta, content)
+  values ('zz-share-1', 'S', 'zz-share-1', null, now(), 'test-ds', 'tech-article-staging', '[]'::jsonb, '{}'::jsonb, 'x');
+  insert into public.share_links (token, page_id) values ('zz-token-a', 'zz-share-1');
+  begin
+    insert into public.share_links (token, page_id) values ('zz-token-b', 'zz-share-1');
+    raise exception 'FAIL 9: a second edit link for one article was accepted';
+  exception when unique_violation then
+    null; -- expected
+  end;
+
+  raise notice 'OK  9. share_links is server-only (no anon/authenticated access, RLS on), one edit link per article';
+end $$;
+
+
 rollback;  -- nothing is persisted; all seed rows disappear
 
 \echo ''

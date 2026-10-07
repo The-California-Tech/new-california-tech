@@ -6,6 +6,7 @@ import {
   getPropertyNumberValue,
 } from 'symbiont-cms/server';
 import { parseTechIssueDate, parseWebsitePublishDate } from '../date-parser.js';
+import { countWordsFromMarkdown } from '../../utils/word-count.js';
 import {
   BYLINE_PROPERTY as BYLINE_PROPERTY_NAME,
   COVER_FIT_PROPERTY as COVER_FIT_PROPERTY_NAME,
@@ -20,6 +21,7 @@ import {
   NO_SYNC_TAG,
   PRINT_ONLY_TAG,
   TAGS_PROPERTY,
+  WORD_COUNT_PROPERTY,
 } from '../properties.js';
 import {
   normalizeBylineFormat,
@@ -109,28 +111,6 @@ function hasAnyTag(ctx: HookContext, wanted: readonly string[]): boolean {
 
 function isPrintOnlyOrAdvertisement(ctx: HookContext): boolean {
   return hasAnyTag(ctx, [PRINT_ONLY_TAG, ADVERTISEMENT_TAG]);
-}
-
-function countWordsFromMarkdown(markdown: string): number {
-  if (!markdown.trim()) {
-    return 0;
-  }
-
-  const plainText = markdown
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/[>#*_~-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (!plainText) {
-    return 0;
-  }
-
-  return plainText.split(/\s+/).filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
 }
 
 /**
@@ -424,7 +404,7 @@ export const wordCountSyncHook: Hook<void> = {
     }
 
     const wordCount = countWordsFromMarkdown(content);
-    const wordCountProp = ctx.page.properties['Word Count'] as any;
+    const wordCountProp = ctx.page.properties[WORD_COUNT_PROPERTY] as any;
     const existingWordCount =
       typeof wordCountProp?.number === 'number'
         ? String(wordCountProp.number)
@@ -440,7 +420,7 @@ export const wordCountSyncHook: Hook<void> = {
       return null;
     }
 
-    await notionClient.updateProperty(ctx.page.id, 'Word Count', nextWordCount);
+    await notionClient.updateProperty(ctx.page.id, WORD_COUNT_PROPERTY, nextWordCount);
     ctx.logger.debug({
       event: 'word_count_synced_to_notion',
       pageId: ctx.page.id,

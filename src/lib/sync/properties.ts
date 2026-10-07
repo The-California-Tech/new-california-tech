@@ -79,6 +79,25 @@ export const WHERE_IS_IT_PROPERTY = 'Where is it';
  */
 export const WHERE_IS_IT_NOTION_PAGE = 'This Notion Page';
 
+/**
+ * The `Where is it` option that means the web editor owns the article body:
+ * /submit and /share write `pages.content`, and the sync must leave it alone.
+ * It is the switch -- `Where is it` already says where the working copy is.
+ * Moving away from it, to any other value or blank, hands the body to Notion
+ * and permanently locks the writer's link. See sync/hooks/content-source.ts.
+ */
+export const WHERE_IS_IT_WEB_EDITOR = 'Web Editor';
+
+/**
+ * rich_text, editor-facing (it is where "please link in Info section" points).
+ * Web-editor articles get one machine-written line here holding the edit link;
+ * everything else in it is the editors' and is never touched.
+ */
+export const INFO_PROPERTY = 'Info';
+
+/** rich_text. Written by the sync for Notion-owned bodies, by /submit and /share otherwise. */
+export const WORD_COUNT_PROPERTY = 'Word Count';
+
 // ── Tags option names this app gives meaning to ──────────────────────────
 // Option names, not column names, but they drift the same way and fail the
 // same way: Notion invents a missing option rather than erroring, so a

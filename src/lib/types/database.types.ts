@@ -95,6 +95,35 @@ export type Database = {
         };
         Relationships: [];
       };
+      share_links: {
+        Row: {
+          created_at: string;
+          page_id: string;
+          read_only: boolean;
+          token: string;
+        };
+        Insert: {
+          created_at?: string;
+          page_id: string;
+          read_only?: boolean;
+          token: string;
+        };
+        Update: {
+          created_at?: string;
+          page_id?: string;
+          read_only?: boolean;
+          token?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'share_links_page_id_fkey';
+            columns: ['page_id'];
+            isOneToOne: false;
+            referencedRelation: 'pages';
+            referencedColumns: ['page_id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

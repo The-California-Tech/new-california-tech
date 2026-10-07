@@ -537,3 +537,43 @@ $function$;
 grant execute on function public.list_category_posts(text, text[], integer, integer) to anon;
 grant execute on function public.list_category_posts(text, text[], integer, integer) to authenticated;
 grant execute on function public.list_category_posts(text, text[], integer, integer) to service_role;
+
+
+-- ---------------------------------------------------------------------------
+-- 9. share_links -- the edit link to a web-editor article
+--
+-- A link is /share/<token>. One edit link per article (the partial unique
+-- index), reused for as long as the article exists: it goes to the writer and
+-- into the Notion page (placeholder body and Info), and the sync looks it up
+-- here by page when it needs it again -- e.g. when a piece is handed back to
+-- the web editor and the writer's own link should work again.
+--
+-- The token is stored as-is, not hashed. Hashing would only protect links if
+-- this table leaked, but the same links are in Notion in clear, and anyone who
+-- can read this table (service_role only) can already write pages.content.
+-- Storing them is what lets the sync recover a page's link reliably.
+--
+-- Whether a link can edit is not stored: it depends on the article (Where is
+-- it = Web Editor), checked by the /share route. `read_only` is unused today;
+-- /share honours it should outsider read-only links ever be wanted.
+--
+-- Server-only. RLS is on with no policies, and only service_role is granted,
+-- so anon and authenticated cannot read it even if a grant is added by mistake
+-- later. App-owned, referencing symbiont's pages: extend, don't fork. ON DELETE
+-- CASCADE because a link to a deleted article is meaningless.
+-- ---------------------------------------------------------------------------
+create table if not exists public.share_links (
+  token      text primary key,
+  page_id    text not null references public.pages (page_id) on delete cascade,
+  read_only  boolean not null default false,
+  created_at timestamp with time zone not null default now()
+);
+
+create index if not exists share_links_page_id_idx on public.share_links (page_id);
+
+create unique index if not exists share_links_one_edit_link
+  on public.share_links (page_id) where not read_only;
+
+alter table public.share_links enable row level security;
+
+grant select, insert, update, delete on table public.share_links to service_role;

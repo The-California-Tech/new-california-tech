@@ -170,6 +170,31 @@ export interface ValidateOptions {
   imageUrlPrefix?: string;
 }
 
+/** Title: one line, required, bounded. Returns the value and an error, if any. */
+function checkTitle(raw: unknown): { title: string; error?: string } {
+  const title = oneLine(raw);
+  if (!title) return { title, error: 'Please give your piece a title.' };
+  if (title.length > SUBMISSION_LIMITS.title) return { title, error: 'That title is too long.' };
+  return { title };
+}
+
+/**
+ * Body: entities decoded, tags stripped (in that order -- see
+ * decodeEditorEntities), images limited to our bucket, required, bounded.
+ */
+function checkBody(raw: unknown, imageUrlPrefix?: string): { body: string; error?: string } {
+  let body = stripMarkupTags(decodeEditorEntities(String(raw ?? ''))).replace(/\r\n?/g, '\n');
+  if (imageUrlPrefix) body = keepOnlyHostedImages(body, imageUrlPrefix);
+  body = body.trim();
+  if (!body) return { body, error: 'Your piece is empty.' };
+  if (body.length > SUBMISSION_LIMITS.body)
+    return {
+      body,
+      error: `That is longer than we can accept online (${SUBMISSION_LIMITS.body.toLocaleString('en-US')} characters). Please email it to the editors instead.`,
+    };
+  return { body };
+}
+
 export function validateSubmission(
   raw: Record<string, unknown>,
   { imageUrlPrefix }: ValidateOptions = {},
@@ -178,11 +203,9 @@ export function validateSubmission(
 
   const name = oneLine(raw.name);
   const email = oneLine(raw.email).toLowerCase();
-  const title = oneLine(raw.title);
+  const { title, error: titleError } = checkTitle(raw.title);
   const categoryRaw = oneLine(raw.category);
-  let body = stripMarkupTags(decodeEditorEntities(String(raw.body ?? ''))).replace(/\r\n?/g, '\n');
-  if (imageUrlPrefix) body = keepOnlyHostedImages(body, imageUrlPrefix);
-  body = body.trim();
+  const { body, error: bodyError } = checkBody(raw.body, imageUrlPrefix);
 
   if (!name) errors.name = 'Please tell us your name.';
   else if (name.length > SUBMISSION_LIMITS.name) errors.name = 'That name is too long.';
@@ -191,8 +214,7 @@ export function validateSubmission(
   else if (email.length > SUBMISSION_LIMITS.email || !CALTECH_EMAIL.test(email))
     errors.email = 'Please use a caltech.edu email address.';
 
-  if (!title) errors.title = 'Please give your piece a title.';
-  else if (title.length > SUBMISSION_LIMITS.title) errors.title = 'That title is too long.';
+  if (titleError) errors.title = titleError;
 
   // Blank is fine -- the editors will file it. Anything else must be one of
   // ours, because it becomes a Tags option verbatim.
@@ -203,10 +225,31 @@ export function validateSubmission(
     else errors.category = 'Please choose a category from the list.';
   }
 
-  if (!body) errors.body = 'Your piece is empty.';
-  else if (body.length > SUBMISSION_LIMITS.body)
-    errors.body = `That is longer than we can accept online (${SUBMISSION_LIMITS.body.toLocaleString('en-US')} characters). Please email it to tech@caltech.edu instead.`;
+  if (bodyError) errors.body = bodyError;
 
   if (Object.keys(errors).length) return { ok: false, errors };
   return { ok: true, value: { name, email, title, category, body } };
+}
+
+export type PieceEditField = 'title' | 'body';
+
+export type PieceEditValidation =
+  { ok: true; value: { title: string; body: string } } | { ok: false; errors: Partial<Record<PieceEditField, string>> };
+
+/**
+ * An edit from /share: just the title and body, with exactly the rules a new
+ * submission's title and body get. The same text reaches the same places, so
+ * the same stripping and image limits apply.
+ */
+export function validatePieceEdit(
+  raw: Record<string, unknown>,
+  { imageUrlPrefix }: ValidateOptions = {},
+): PieceEditValidation {
+  const { title, error: titleError } = checkTitle(raw.title);
+  const { body, error: bodyError } = checkBody(raw.body, imageUrlPrefix);
+  const errors: Partial<Record<PieceEditField, string>> = {};
+  if (titleError) errors.title = titleError;
+  if (bodyError) errors.body = bodyError;
+  if (Object.keys(errors).length) return { ok: false, errors };
+  return { ok: true, value: { title, body } };
 }
