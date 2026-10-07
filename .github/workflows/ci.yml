@@ -42,6 +42,12 @@ jobs:
       - name: Type-check
         run: pnpm check
 
+      # symbiont validates sync configs when a sync starts, not at build time,
+      # so a bad one deploys cleanly and then fails every sync. This builds them
+      # the same way; see the script's header.
+      - name: Sync config is valid
+        run: pnpm check:sync-config
+
       - name: Lint
         run: pnpm lint
 

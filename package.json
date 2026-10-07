@@ -21,6 +21,7 @@
     "clean": "npm-run-all -s clean:QWER clean:routeFolder clean:sveltekit",
     "cleandeep": "npm-run-all -s clean clean:node_modules",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:sync-config": "node scripts/check-sync-config.mjs",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",

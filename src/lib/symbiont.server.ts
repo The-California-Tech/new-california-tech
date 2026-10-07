@@ -13,7 +13,7 @@ import {
 } from '$lib/sync/hooks/tech.js';
 import { syncNoteHooks } from '$lib/sync/hooks/sync-note.js';
 import { layoutExpansionHooks } from '$lib/sync/hooks/layout-expansion.js';
-import { contentSourceHooks } from '$lib/sync/hooks/content-source.js';
+import { contentSourceHooks, contentSourceMetadata } from '$lib/sync/hooks/content-source.js';
 
 export const symbiontSync = createSymbiontServer(symbiont, {
   'tech-article-staging': {
@@ -33,7 +33,12 @@ export const symbiontSync = createSymbiontServer(symbiont, {
     shouldSync: excludeAndDeletePrintOnlyHook.fn,
     isPublished: publishCheckHook.fn,
     publishDate: (ctx) => publishDateHook.fn(ctx),
-    addMetadata: (ctx) => articlePreviewMetadataHook.fn(ctx),
+    // One slot, two contributors. Not a second metadata:add hook: symbiont
+    // rejects a slot and a hook on the same event, before syncing anything.
+    addMetadata: async (ctx) => {
+      const merged = { ...(await articlePreviewMetadataHook.fn(ctx)), ...contentSourceMetadata(ctx) };
+      return Object.keys(merged).length > 0 ? merged : null;
+    },
     transformContent: (ctx) => htmlCodeEmbedHook.fn(ctx),
     hooks: [publicTagsHook, ...contentSourceHooks, wordCountSyncHook, ...layoutExpansionHooks, ...syncNoteHooks],
   },

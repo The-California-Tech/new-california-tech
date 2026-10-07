@@ -150,11 +150,16 @@ export const contentSourceChangeHook: Hook<void> = {
   },
 };
 
-export const contentSourceMetadataHook: Hook<Record<string, unknown>> = {
-  name: 'tech:content-source:meta',
-  event: 'metadata:add',
-  fn: async (ctx: HookContext) => (ctx.store[MARK_WEB] ? { contentSource: 'web' } : null),
-};
+/**
+ * meta.contentSource for this sync, or null. NOT registered as a metadata:add
+ * hook: the app fills symbiont's `addMetadata` slot, and symbiont refuses a
+ * config with both a slot and a hook for the same event (it throws before any
+ * page is processed -- which took every article sync down once). The slot
+ * function in symbiont.server.ts merges this in instead.
+ */
+export function contentSourceMetadata(ctx: HookContext): Record<string, unknown> | null {
+  return ctx.store[MARK_WEB] ? { contentSource: 'web' } : null;
+}
 
 export const contentSourceShouldSyncHook: Hook<boolean> = {
   name: 'tech:content-source:should-sync',
@@ -201,9 +206,9 @@ export const contentSourceSetupHook: Hook<void> = {
   },
 };
 
+/** For the `hooks` array. The metadata half is contentSourceMetadata, above. */
 export const contentSourceHooks: Hook[] = [
   contentSourceChangeHook,
-  contentSourceMetadataHook,
   contentSourceShouldSyncHook,
   contentSourceSetupHook,
 ];
