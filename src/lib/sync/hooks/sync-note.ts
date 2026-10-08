@@ -11,6 +11,7 @@
 import type { Hook, HookContext, SyncResultReport } from 'symbiont-cms';
 import { appendOrReplaceTaggedLine } from 'symbiont-cms/server';
 import { SYNC_NOTE_PROPERTY as NOTES_PROPERTY_NAME } from '$lib/sync/properties';
+import { isManualSync } from '$lib/sync/manual-trigger';
 
 /** Prefix that marks the line as machine-written, so the next run replaces it. */
 const SYNC_NOTE_TAG = '[sync]';
@@ -36,8 +37,11 @@ export function formatSyncNote(report: SyncResultReport): string {
     hour12: false,
   }).format(report.at);
 
+  // Only a button press reports a sync that changed nothing (see below).
   const outcome = report.ok
-    ? 'synced'
+    ? report.unchanged
+      ? 'synced, no changes'
+      : 'synced'
     : `FAILED — ${truncate(report.error?.message ?? 'unknown error', MAX_MESSAGE_LENGTH)}`;
 
   return `${SYNC_NOTE_TAG} ${stamp} PT — ${outcome}`;
@@ -52,21 +56,27 @@ export const syncNoteHooks: Hook[] = [
     fn: async (ctx: HookContext) => {
       const report = ctx.input as SyncResultReport | undefined;
       if (!report) return null;
+      // A person pressed the Sync button and is waiting for an answer.
+      const manual = isManualSync();
 
       /*
        * Not optional. A write-back edits the page, which fires the automation,
        * which runs this sync, which writes back. writeBackSafe is false both
        * when the last edit was ours and when symbiont could not determine whose
        * it was -- "unknown" has to count as unsafe or the loop is unbounded.
+       *
+       * The one exception is a button press: it is not an edit, so it cannot be
+       * the echo of our own write, and the edit our answer makes fires an
+       * ordinary webhook that stops here as usual.
        */
-      if (!report.writeBackSafe) return null;
+      if (!report.writeBackSafe && !manual) return null;
 
       /*
        * Nothing happened, so say nothing. Rewriting an identical line on every
        * webhook would mean a Notion write per event for no information, and
-       * each of those writes is itself an edit.
+       * each of those writes is itself an edit. Unless someone asked.
        */
-      if (report.ok && report.unchanged) return null;
+      if (report.ok && report.unchanged && !manual) return null;
 
       const property = ctx.page.properties[NOTES_PROPERTY_NAME];
       if (!property || property.type !== 'rich_text') {
