@@ -19,16 +19,23 @@
  * still honours it, should outsider read-only links ever be wanted.
  */
 import { randomBytes } from 'node:crypto';
-import { siteConfig } from '$config/site';
 import { adminDb } from '$lib/server/admin-db';
 
 export function newShareToken(): string {
   return randomBytes(24).toString('base64url');
 }
 
+/**
+ * Where edit links point: the staging deployment until launch, since
+ * tech.caltech.edu does not serve this app yet. At launch, switch back to
+ * siteConfig.url. Links already sent keep this host, so they keep working only
+ * while this deployment answers on it.
+ */
+const SHARE_ORIGIN = 'https://new-california-tech.vercel.app';
+
 /** Absolute URL for a token: it goes in emails and in Notion. */
 export function shareUrl(token: string): string {
-  return new URL(`/share/${token}`, siteConfig.url).href;
+  return new URL(`/share/${token}`, SHARE_ORIGIN).href;
 }
 
 /** A token is base64url of 24 bytes: 32 characters of [A-Za-z0-9_-]. */
