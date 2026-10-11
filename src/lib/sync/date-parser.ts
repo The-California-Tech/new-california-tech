@@ -9,7 +9,9 @@
  * Parse a California Tech issue date string into an ISO timestamp.
  *
  * The Issue property contains dates like "January 20, 2023".
- * This function parses them and sets the time to 7:00 AM PST (14:00 UTC).
+ * This function parses them and sets the time to 14:00 UTC: 7 AM in summer
+ * (PDT), 6 AM in winter (PST). Either way it is the morning of that day in
+ * Pacific time, which is the clock the site displays dates in.
  *
  * @param issueString - The issue date string (e.g., "January 20, 2023")
  * @returns ISO timestamp string or null if parsing fails
@@ -52,7 +54,10 @@ const DAY_FIRST = /^(\d{1,2})(?:st|nd|rd|th)?\.?\s+([A-Za-z]{3,9})\.?,?\s+(\d{4}
 const ISO_DATE = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
 const US_SLASHED = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
 
-/** Build the 7 AM PST instant for a Y/M/D, or null if it is not a real date. */
+/**
+ * Build the 14:00 UTC instant for a Y/M/D (a Pacific morning: 7 AM PDT, 6 AM
+ * PST), or null if it is not a real date.
+ */
 function pacificMorning(year: number, month: number, day: number): string | null {
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
 
@@ -148,16 +153,36 @@ export function parseTechIssueDate(issueString: string): string | null {
 /**
  * Parse a website publish date from Notion's date property.
  *
- * @param dateString - ISO date string from Notion
+ * A date-only value ("2023-01-20") gets the same Pacific-morning time as an
+ * Issue date. It used to go through `new Date()`, which reads a bare ISO date
+ * as midnight UTC -- 4 or 5 PM Pacific the day BEFORE. The site shows dates in
+ * Pacific, so those articles displayed a day early, and went public (RLS:
+ * publish_at <= now) the afternoon before their date.
+ *
+ * A value with a time (Notion's "Include time") already names an instant, so
+ * it is kept as given.
+ *
+ * @param dateString - ISO date or datetime string from Notion
  * @returns ISO timestamp string or null if parsing fails
  *
  * @example
  * parseWebsitePublishDate("2023-01-20")
- * // Returns: "2023-01-20T00:00:00.000Z"
+ * // Returns: "2023-01-20T14:00:00.000Z"
+ * parseWebsitePublishDate("2023-01-20T18:30:00.000-08:00")
+ * // Returns: "2023-01-21T02:30:00.000Z"
  */
 export function parseWebsitePublishDate(dateString: string): string | null {
   if (!dateString || typeof dateString !== 'string') {
     return null;
+  }
+
+  const dateOnly = ISO_DATE.exec(dateString.trim());
+  if (dateOnly) {
+    const parsed = pacificMorning(Number(dateOnly[1]), Number(dateOnly[2]), Number(dateOnly[3]));
+    if (!parsed) {
+      console.warn(`[tech.caltech.edu] Not a real calendar date in Website Publish Date: "${dateString}"`);
+    }
+    return parsed;
   }
 
   try {
