@@ -14,9 +14,9 @@
  *   Google's URLs are handed to the server to fetch (it allowlists the host).
  *   Supabase *is* in connect-src, which is what lets the browser upload there.
  */
-import { SUPABASE_PUBLISHABLE_KEY } from '$lib/symbiont';
-import { techConfig } from '$config/tech';
-import { SUBMISSION_IMAGE_LIMITS, SUBMISSION_IMAGE_TYPES } from '$lib/utils/submission';
+import { SUPABASE_PUBLISHABLE_KEY } from '#lib/symbiont.ts';
+import { techConfig } from '#config/tech.ts';
+import { SUBMISSION_IMAGE_LIMITS, SUBMISSION_IMAGE_TYPES } from '#lib/utils/submission.ts';
 
 export interface UploadedImage {
   url: string;

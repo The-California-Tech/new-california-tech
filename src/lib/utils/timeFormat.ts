@@ -1,5 +1,5 @@
-import { dateConfig } from '$config/site';
-import { strings } from '$lib/strings';
+import { dateConfig } from '#config/site.ts';
+import { strings } from '#lib/strings.ts';
 
 export const lastUpdatedStr = (updatedTime: string) => {
   // In minutes

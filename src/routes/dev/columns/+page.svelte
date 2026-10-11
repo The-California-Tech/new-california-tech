@@ -18,9 +18,9 @@
    * where its width can be any fraction, and this page is purely about the
    * headline and byline.
    */
-  import IndexPosts from '$lib/components/index_posts.svelte';
-  import type { Post } from '$lib/types/post';
-  import type { BylineFormat } from '$lib/utils/layout-preset';
+  import IndexPosts from '#lib/components/index_posts.svelte';
+  import type { Post } from '#lib/types/post.d.ts';
+  import type { BylineFormat } from '#lib/utils/layout-preset.ts';
 
   const SUMMARY = `On a Saturday afternoon this spring, part of Caltech's inaugural Integrated Core cohort found itself somewhere few first-year lab sections go: wandering the aisles of Home Depot, looking for tubing, buckets, connectors, and whatever else might help them build small-scale carbon capture systems from scratch.
 One group was growing algae. Another was working with limestone. A third was still arguing about the pump, which had by then become a matter of some principle. The teaching assistants had been told not to intervene unless something was about to catch fire, which by mid-afternoon seemed rather less unlikely than it had at the start of the day.`;

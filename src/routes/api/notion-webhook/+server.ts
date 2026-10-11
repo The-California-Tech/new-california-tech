@@ -1,6 +1,6 @@
 import { handleNotionWebhookRequest } from 'symbiont-cms/server';
-import { symbiontSync } from '$lib/symbiont.server.js';
-import { runAsManualSync } from '$lib/sync/manual-trigger';
+import { symbiontSync } from '#lib/symbiont.server.ts';
+import { runAsManualSync } from '#lib/sync/manual-trigger.ts';
 import type { RequestEvent } from '@sveltejs/kit';
 
 /**

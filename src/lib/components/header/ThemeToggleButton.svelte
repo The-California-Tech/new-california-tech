@@ -1,8 +1,8 @@
 <!-- packages/california-tech/src/lib/components/header/ThemeToggleButton.svelte -->
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { enhance } from '$app/forms';
-  import { theme } from '$lib/stores/themes';
+  import { theme } from '#lib/stores/themes.ts';
 
   // For JS-enabled clients, use the store directly for an instant update.
   function toggleThemeClientSide() {
@@ -18,7 +18,7 @@
     theme from cookies, toggles it, and redirects back.
 -->
 <form
-  action="/api/toggle-theme?redirectTo={$page.url.pathname}"
+  action="/api/toggle-theme?redirectTo={page.url.pathname}"
   method="POST"
   use:enhance={() => {
     toggleThemeClientSide();

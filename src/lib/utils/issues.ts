@@ -1,7 +1,7 @@
-import { symbiont } from '$lib/symbiont';
-import { symbiontToTechArticle } from '$lib/utils/post-converter';
-import { compareStringDesc, getPacificDateKey, sortByPublishDayThenLayoutWeightDesc } from '$lib/utils/post-sorting';
-import type { Issue } from '$lib/types/index';
+import { symbiont } from '#lib/symbiont.ts';
+import { symbiontToTechArticle } from '#lib/utils/post-converter.ts';
+import { compareStringDesc, getPacificDateKey, sortByPublishDayThenLayoutWeightDesc } from '#lib/utils/post-sorting.ts';
+import type { Issue } from '#lib/types/index.d.ts';
 import { getAppThumbnailUrl, getIssueCoverThumbnailUrl } from './image-url';
 
 export const FETCH_BATCH_SIZE = 1000;

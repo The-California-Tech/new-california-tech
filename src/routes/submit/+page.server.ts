@@ -1,15 +1,15 @@
 import { fail } from '@sveltejs/kit';
-import { techConfig } from '$config/tech';
+import { techConfig } from '#config/tech.ts';
 import type { Actions } from './$types';
-import { allowSubmission, createSubmission } from '$lib/server/submission.js';
-import { sendSubmissionEmails } from '$lib/server/submission-mail.js';
-import { SUPABASE_URL } from '$lib/symbiont.js';
+import { allowSubmission, createSubmission } from '#lib/server/submission.ts';
+import { sendSubmissionEmails } from '#lib/server/submission-mail.ts';
+import { SUPABASE_URL } from '#lib/symbiont.ts';
 import {
   HONEYPOT_FIELD,
   mediaPublicUrlPrefix,
   validateSubmission,
   type SubmissionField,
-} from '$lib/utils/submission.js';
+} from '#lib/utils/submission.ts';
 
 // A page with form actions cannot be prerendered, and the root layout
 // prerenders by default.

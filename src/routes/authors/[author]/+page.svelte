@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import { siteConfig } from '$config/site';
-  import ArticleList from '$lib/components/article_list.svelte';
+  import { siteConfig } from '#config/site.ts';
+  import ArticleList from '#lib/components/article_list.svelte';
 
   let { data } = $props();
 

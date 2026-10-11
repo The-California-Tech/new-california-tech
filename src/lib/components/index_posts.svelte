@@ -1,9 +1,9 @@
 <!-- packages/california-tech/src/lib/components/index_posts.svelte -->
 <script lang="ts">
-  import { strings } from '$lib/strings';
+  import { strings } from '#lib/strings.ts';
   import { fade } from 'svelte/transition';
-  import IndexPost from '$lib/components/index_post.svelte';
-  import type { Post } from '$lib/types/post';
+  import IndexPost from '#lib/components/index_post.svelte';
+  import type { Post } from '#lib/types/post.d.ts';
 
   let {
     posts = [],

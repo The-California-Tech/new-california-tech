@@ -1,9 +1,9 @@
 <!-- packages/california-tech/src/lib/components/header/DefaultNav.svelte -->
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
-  import { browser } from '$app/environment';
-  import ThemeToggleButton from '$lib/components/header/ThemeToggleButton.svelte';
+  import { browser } from '$app/env';
+  import ThemeToggleButton from '#lib/components/header/ThemeToggleButton.svelte';
 
   let searchExpanded = $state(false);
   let searchQuery = $state('');
@@ -48,8 +48,8 @@
       <a
         href={section.href}
         class="px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors"
-        class:font-bold={$page.url.pathname === section.href ||
-          ($page.url.pathname.startsWith('/issues') && section.href === '/issues')}>
+        class:font-bold={page.url.pathname === section.href ||
+          (page.url.pathname.startsWith('/issues') && section.href === '/issues')}>
         {#if section.emphasizeTech}
           All <em>Tech</em>
           Issues
@@ -69,8 +69,8 @@
         <a
           href={section.href}
           class="block px-4 py-2 hover:bg-black/10 dark:hover:bg-white/10 first:rounded-t-lg last:rounded-b-lg"
-          class:font-bold={$page.url.pathname === section.href ||
-            ($page.url.pathname.startsWith('/issues') && section.href === '/issues')}>
+          class:font-bold={page.url.pathname === section.href ||
+            (page.url.pathname.startsWith('/issues') && section.href === '/issues')}>
           {#if section.emphasizeTech}
             All <em>Tech</em>
             Issues

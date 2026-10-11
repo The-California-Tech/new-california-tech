@@ -1,15 +1,15 @@
 <!-- packages/california-tech/src/routes/+page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
-  import { browser } from '$app/environment';
+  import { browser } from '$app/env';
   import { fly } from 'svelte/transition';
-  import type { Post } from '$lib/types/post';
-  import { mergeUniqueBy } from '$lib/utils/collections';
-  import { buildCountLoadMoreHref, fetchPostPreviewPage, observeInfiniteScroll } from '$lib/utils/feed-client';
+  import type { Post } from '#lib/types/post.d.ts';
+  import { mergeUniqueBy } from '#lib/utils/collections.ts';
+  import { buildCountLoadMoreHref, fetchPostPreviewPage, observeInfiniteScroll } from '#lib/utils/feed-client.ts';
 
-  import { siteConfig } from '$config/site';
+  import { siteConfig } from '#config/site.ts';
 
-  import IndexPosts from '$lib/components/index_posts.svelte';
+  import IndexPosts from '#lib/components/index_posts.svelte';
 
   let { data } = $props();
 

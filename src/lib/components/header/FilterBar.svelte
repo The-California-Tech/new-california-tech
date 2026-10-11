@@ -1,7 +1,7 @@
 <!-- packages/california-tech/src/lib/components/header/FilterBar.svelte -->
 <script lang="ts">
-  import { strings } from '$lib/strings';
-  import type { Tags } from '$lib/types/tags';
+  import { strings } from '#lib/strings.ts';
+  import type { Tags } from '#lib/types/tags.d.ts';
   import TagsCategory from './TagsCategory.svelte';
 
   let {

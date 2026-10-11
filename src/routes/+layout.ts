@@ -1,7 +1,7 @@
 export const prerender = true;
 import type { LayoutLoad } from './$types';
 
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 import { injectAnalytics } from '@vercel/analytics/sveltekit';
 import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 

@@ -8,8 +8,8 @@
   take up half the screen here because it did on its own front page.
 -->
 <script lang="ts">
-  import type { Post } from '$lib/types/post';
-  import { siteConfig } from '$config/site';
+  import type { Post } from '#lib/types/post.d.ts';
+  import { siteConfig } from '#config/site.ts';
 
   let {
     posts,

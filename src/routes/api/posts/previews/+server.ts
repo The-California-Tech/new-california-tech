@@ -1,13 +1,7 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { appDb } from '$lib/utils/app-db';
-import { fetchFeedPage, FEED_BATCH_SIZE } from '$lib/utils/feed-query';
-import { parsePositiveInt } from '$lib/utils/post-pagination';
-
-export const config = {
-  maxage: 300, // Cache for 5 minutes
-  revalidate: 300,
-};
+import { appDb } from '#lib/utils/app-db.ts';
+import { fetchFeedPage, FEED_BATCH_SIZE } from '#lib/utils/feed-query.ts';
+import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
 
 export const GET: RequestHandler = async ({ fetch, url }) => {
   try {
@@ -55,7 +49,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
       coverStyle: post.coverStyle,
     }));
 
-    return json({
+    return Response.json({
       posts: previews,
       issueOffset,
       nextIssueOffset: page.issueRank,
@@ -65,6 +59,6 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
     });
   } catch (error) {
     console.error('[/api/posts/previews] Error fetching previews:', error);
-    return json({ error: 'Failed to fetch previews' }, { status: 500 });
+    return Response.json({ error: 'Failed to fetch previews' }, { status: 500 });
   }
 };

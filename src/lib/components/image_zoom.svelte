@@ -1,11 +1,11 @@
 <script lang="ts">
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  import type { Asset } from '$generated/asset';
+  import type { Asset } from '#generated/asset.d.ts';
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  import { assets } from '$generated/assets';
-  import { UserConfig } from '$config/QWER.config';
+  import { assets } from '#generated/assets.ts';
+  import { UserConfig } from '#config/QWER.config.js';
   import { fade } from 'svelte/transition';
   import { onMount } from 'svelte';
   import mediumZoom from 'medium-zoom';

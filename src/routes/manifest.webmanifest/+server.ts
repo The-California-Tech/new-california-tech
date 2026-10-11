@@ -1,7 +1,7 @@
 export const prerender = true;
 import type { RequestHandler } from '@sveltejs/kit';
-import { siteConfig } from '$config/site';
-import { theme } from '$stores/themes';
+import { siteConfig } from '#config/site.ts';
+import { theme } from '#lib/stores/themes.ts';
 
 export const GET: RequestHandler = () =>
   new Response(

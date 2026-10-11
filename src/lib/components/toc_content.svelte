@@ -1,9 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { slide } from 'svelte/transition';
-  import type { TOC } from '$lib/types/toc';
-  import { tocCur } from '$stores/toc';
-  import Self from '$lib/components/toc_content.svelte';
+  import type { TOC } from '#lib/types/toc.d.ts';
+  import { tocCur } from '#lib/stores/toc.ts';
+  import Self from '#lib/components/toc_content.svelte';
 
   let { content, expanded = false, depth = 1 }: { content: TOC.Heading; expanded?: boolean; depth?: number } = $props();
   let isExpanded = $state(untrack(() => expanded));

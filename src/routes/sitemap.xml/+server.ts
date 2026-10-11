@@ -1,8 +1,8 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { symbiont } from '$lib/symbiont';
-import { appDb } from '$lib/utils/app-db';
-import { buildIssueCards } from '$lib/utils/issues';
-import { fetchAuthors, fetchCategories } from '$lib/utils/listing-query';
+import { symbiont } from '#lib/symbiont.ts';
+import { appDb } from '#lib/utils/app-db.ts';
+import { buildIssueCards } from '#lib/utils/issues.ts';
+import { fetchAuthors, fetchCategories } from '#lib/utils/listing-query.ts';
 import {
   ARTICLE_ALIAS,
   SITE_PAGE_ALIAS,
@@ -12,7 +12,7 @@ import {
   fetchAllPages,
   pageUrl,
   rfc3339,
-} from '$lib/utils/syndication';
+} from '#lib/utils/syndication.ts';
 
 export const prerender = false;
 

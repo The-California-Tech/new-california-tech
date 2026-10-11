@@ -1,4 +1,3 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import {
   allowImageUpload,
@@ -6,7 +5,7 @@ import {
   fetchRemoteSubmissionImage,
   signSubmissionUpload,
   SubmissionImageError,
-} from '$lib/server/submission.js';
+} from '#lib/server/submission.ts';
 
 /**
  * Image uploads for /submit's editor. See the image section of
@@ -26,31 +25,31 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   try {
     body = await request.json();
   } catch {
-    return json({ error: 'The request did not arrive intact.' }, { status: 400 });
+    return Response.json({ error: 'The request did not arrive intact.' }, { status: 400 });
   }
 
   // Counted once per image: at sign for uploads, at fetch for pasted ones.
   // Confirm is not counted, since it can only follow a sign.
   if ((body.action === 'sign' || body.action === 'remote') && !allowImageUpload(getClientAddress())) {
-    return json({ error: 'Too many images in the last hour. Please try again later.' }, { status: 429 });
+    return Response.json({ error: 'Too many images in the last hour. Please try again later.' }, { status: 429 });
   }
 
   try {
     switch (body.action) {
       case 'sign':
-        return json(await signSubmissionUpload(String(body.contentType ?? '')));
+        return Response.json(await signSubmissionUpload(String(body.contentType ?? '')));
       case 'confirm':
-        return json(await confirmSubmissionUpload(String(body.path ?? '')));
+        return Response.json(await confirmSubmissionUpload(String(body.path ?? '')));
       case 'remote':
-        return json(await fetchRemoteSubmissionImage(String(body.url ?? '')));
+        return Response.json(await fetchRemoteSubmissionImage(String(body.url ?? '')));
       default:
-        return json({ error: 'Unknown action.' }, { status: 400 });
+        return Response.json({ error: 'Unknown action.' }, { status: 400 });
     }
   } catch (error) {
     if (error instanceof SubmissionImageError) {
-      return json({ error: error.message }, { status: 422 });
+      return Response.json({ error: error.message }, { status: 422 });
     }
     console.error('[submit] image_failed', body.action, error instanceof Error ? error.message : error);
-    return json({ error: 'The image could not be saved. Please try again.' }, { status: 502 });
+    return Response.json({ error: 'The image could not be saved. Please try again.' }, { status: 502 });
   }
 };

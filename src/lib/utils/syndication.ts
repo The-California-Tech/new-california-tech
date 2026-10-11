@@ -14,8 +14,8 @@
  * endpoints to a service-role client to "fix" a missing row; that would
  * publish embargoed articles.
  */
-import { siteConfig } from '$config/site';
-import type { symbiont } from '$lib/symbiont';
+import { siteConfig } from '#config/site.ts';
+import type { symbiont } from '#lib/symbiont.ts';
 
 /** The live article set. Despite the name, this is production, not staging -- */
 /** public.list_homepage_posts hardcodes the same alias for the homepage feed. */

@@ -11,7 +11,7 @@ import {
   WHERE_IS_IT_NOTION_PAGE,
   WHERE_IS_IT_PROPERTY,
   WHERE_IS_IT_WEB_EDITOR,
-} from '$lib/sync/properties';
+} from '#lib/sync/properties.ts';
 
 /**
  * Marks the machine-written line in Info. Its presence also tells the sync

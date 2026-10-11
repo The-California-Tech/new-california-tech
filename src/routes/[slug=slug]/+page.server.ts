@@ -12,16 +12,12 @@
  * - SEO/crawlers
  */
 
-import { symbiont } from '$lib/symbiont';
+import { symbiont } from '#lib/symbiont.ts';
 import { renderMarkdownToHtml } from 'symbiont-cms/server';
-import { symbiontToTechArticle } from '$lib/utils/post-converter';
+import { symbiontToTechArticle } from '#lib/utils/post-converter.ts';
 import { error, redirect } from '@sveltejs/kit';
 
 // ISR config - enable SvelteKit's ISR caching
-export const config = {
-  maxage: 60,
-  revalidate: 60,
-};
 
 // Dynamic route - fetches posts from database at request time
 export const prerender = false;
@@ -51,14 +47,17 @@ export const load = async (event: any) => {
 
   // Handle redirect-type pages
   if (metadata.pageType === 'Redirect') {
-    // Redirect to external link if available
+    // Both targets are set by editors in Notion and are usually off-site (an
+    // external link, or a file in Supabase storage). SvelteKit 3 refuses an
+    // external redirect unless told it is intended; `javascript:` URLs stay
+    // blocked either way.
     if (metadata.redirectLink) {
-      throw redirect(302, metadata.redirectLink as string);
+      throw redirect(302, metadata.redirectLink as string, { external: true });
     }
 
     // Serve file if available
     if ((metadata.file as { url?: string } | undefined)?.url) {
-      throw redirect(302, (metadata.file as { url: string }).url);
+      throw redirect(302, (metadata.file as { url: string }).url, { external: true });
     }
 
     // No redirect target configured

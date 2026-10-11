@@ -41,11 +41,11 @@ import {
   uploadBufferToSupabase,
   withNotionRetry,
 } from 'symbiont-cms/server';
-import { ARTICLES_ALIAS, symbiont } from '$lib/symbiont.js';
-import { symbiontSync } from '$lib/symbiont.server.js';
-import { adminDb } from '$lib/server/admin-db.js';
-import { newShareToken, shareUrl, storeShareLinks } from '$lib/server/share-links.js';
-import { infoWithEditLink, placeholderBody } from '$lib/server/web-editor.js';
+import { ARTICLES_ALIAS, symbiont } from '#lib/symbiont.ts';
+import { symbiontSync } from '#lib/symbiont.server.ts';
+import { adminDb } from '#lib/server/admin-db.ts';
+import { newShareToken, shareUrl, storeShareLinks } from '#lib/server/share-links.ts';
+import { infoWithEditLink, placeholderBody } from '#lib/server/web-editor.ts';
 import {
   EDITORIAL_NOTES_PROPERTY,
   INFO_PROPERTY,
@@ -56,15 +56,15 @@ import {
   WHERE_IS_IT_PROPERTY,
   WHERE_IS_IT_WEB_EDITOR,
   WORD_COUNT_PROPERTY,
-} from '$lib/sync/properties.js';
-import { countWordsFromMarkdown } from '$lib/utils/word-count.js';
+} from '#lib/sync/properties.ts';
+import { countWordsFromMarkdown } from '#lib/utils/word-count.ts';
 import {
   SUBMISSION_IMAGE_LIMITS,
   SUBMISSION_IMAGE_TYPES,
   SUBMISSION_INCOMING_PREFIX,
   SUBMISSION_MEDIA_PREFIX,
   type SubmissionInput,
-} from '$lib/utils/submission.js';
+} from '#lib/utils/submission.ts';
 
 function articlesDataSourceId(): string {
   const match = symbiont.config.databases.find((db) => db.alias === ARTICLES_ALIAS);

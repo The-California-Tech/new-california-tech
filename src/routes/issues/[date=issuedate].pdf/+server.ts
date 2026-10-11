@@ -5,7 +5,7 @@
  * so the browser URL stays unchanged.
  */
 
-import { symbiont } from '$lib/symbiont';
+import { symbiont } from '#lib/symbiont.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, fetch }) => {

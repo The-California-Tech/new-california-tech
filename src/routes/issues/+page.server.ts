@@ -1,11 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { parsePositiveInt } from '$lib/utils/post-pagination';
-import { buildIssueCards } from '$lib/utils/issues';
-
-export const config = {
-  maxage: 60,
-  revalidate: 60,
-};
+import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
+import { buildIssueCards } from '#lib/utils/issues.ts';
 
 export const prerender = false;
 

@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { authorPath } from '$lib/utils/authors';
+  import { authorPath } from '#lib/utils/authors.ts';
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  import type { Asset } from '$generated/asset';
+  import type { Asset } from '#generated/asset.d.ts';
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  import { assets } from '$generated/assets';
-  import type { Post } from '$lib/types/post';
-  import { siteConfig } from '$config/site';
+  import { assets } from '#generated/assets.ts';
+  import type { Post } from '#lib/types/post.d.ts';
+  import { siteConfig } from '#config/site.ts';
 
   let { post }: { post: Post.Post } = $props();
   const post_cover = $derived.by(() => $assets.get(post.cover ?? '') || post.cover);

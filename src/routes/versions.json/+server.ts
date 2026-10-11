@@ -1,6 +1,6 @@
 export const prerender = true;
 import type { RequestHandler } from '@sveltejs/kit';
-import { siteConfig, headConfig } from '$config/site';
+import { siteConfig, headConfig } from '#config/site.ts';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore

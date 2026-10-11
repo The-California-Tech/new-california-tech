@@ -1,10 +1,10 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { browser } from '$app/environment';
+  import { browser } from '$app/env';
   import { fly } from 'svelte/transition';
-  import type { Issue } from '$lib/types/index';
-  import { mergeUniqueBy } from '$lib/utils/collections';
-  import { buildCountLoadMoreHref, fetchIssueCardsPage, observeInfiniteScroll } from '$lib/utils/feed-client';
+  import type { Issue } from '#lib/types/index.d.ts';
+  import { mergeUniqueBy } from '#lib/utils/collections.ts';
+  import { buildCountLoadMoreHref, fetchIssueCardsPage, observeInfiniteScroll } from '#lib/utils/feed-client.ts';
 
   let { data } = $props();
 

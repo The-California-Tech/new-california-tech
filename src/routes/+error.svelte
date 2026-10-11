@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { siteConfig } from '$config/site';
-  import { strings } from '$lib/strings';
-  import Error404 from '$assets/404.webp';
+  import { page } from '$app/state';
+  import { siteConfig } from '#config/site.ts';
+  import { strings } from '#lib/strings.ts';
+  import Error404 from '#assets/404.webp';
 </script>
 
 <svelte:head>
@@ -14,10 +14,10 @@
     itemscope
     itemtype="https://schema.org/BlogPosting"
     class="pt-[4rem] relative flex flex-col items-center gap-4 justify-center">
-    <h1 class="text-6xl">{$page.status ?? '404'}</h1>
-    <p class="text-lg">{$page.status === 404 ? strings.Page404NotFound() : $page.error?.message}</p>
+    <h1 class="text-6xl">{page.status ?? '404'}</h1>
+    <p class="text-lg">{page.status === 404 ? strings.Page404NotFound() : page.error?.message}</p>
     <img
-      class:hidden={$page.status !== 404}
+      class:hidden={page.status !== 404}
       draggable="false"
       class="select-none max-w-lg w-full h-auto"
       src={Error404}

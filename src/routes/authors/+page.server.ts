@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { appDb } from '$lib/utils/app-db';
-import { fetchAuthors } from '$lib/utils/listing-query';
+import { appDb } from '#lib/utils/app-db.ts';
+import { fetchAuthors } from '#lib/utils/listing-query.ts';
 
 export const prerender = false;
 

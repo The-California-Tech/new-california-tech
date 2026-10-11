@@ -2,9 +2,9 @@
  * Utility to convert Symbiont CMS posts to QWER post format
  */
 import type { DatabasePage } from 'symbiont-cms';
-import type { Post } from '$lib/types/post';
+import type { Post } from '#lib/types/post.d.ts';
 import { renderSummaryToHtml } from 'symbiont-cms/server';
-import { getAppThumbnailUrl } from '$lib/utils/image-url';
+import { getAppThumbnailUrl } from '#lib/utils/image-url.ts';
 import {
   autoCoverFit,
   autoCoverPlacement,
@@ -15,7 +15,7 @@ import {
   normalizeLayoutPreset,
   normalizeProminence,
   resolveLayoutRecipe,
-} from '$lib/utils/layout-preset';
+} from '#lib/utils/layout-preset.ts';
 
 /**
  * A row as consumed by the converter. Deliberately loose, because three

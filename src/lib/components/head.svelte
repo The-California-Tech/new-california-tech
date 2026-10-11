@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { dev } from '$app/environment';
-  import { headConfig, siteConfig } from '$config/site';
+  import { dev } from '$app/env';
+  import { headConfig, siteConfig } from '#config/site.ts';
 </script>
 
 <svelte:head>

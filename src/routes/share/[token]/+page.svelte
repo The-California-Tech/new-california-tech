@@ -4,10 +4,10 @@
   import { untrack } from 'svelte';
   import { fade } from 'svelte/transition';
   import type { ActionData, PageData } from './$types';
-  import '$lib/styles/prose.scss';
-  import SubmissionEditor from '$lib/components/submit/SubmissionEditor.svelte';
-  import { techConfig } from '$config/tech';
-  import { SUBMISSION_LIMITS } from '$lib/utils/submission';
+  import '#lib/styles/prose.scss';
+  import SubmissionEditor from '#lib/components/submit/SubmissionEditor.svelte';
+  import { techConfig } from '#config/tech.ts';
+  import { SUBMISSION_LIMITS } from '#lib/utils/submission.ts';
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 

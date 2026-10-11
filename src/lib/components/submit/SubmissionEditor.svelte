@@ -25,8 +25,8 @@
   import type { Editor } from '@tiptap/core';
   import { loadDraft } from './draft';
   import { ImageRehostError, rehost, releaseStaged, stageFile } from './images';
-  import { SUPABASE_URL } from '$lib/symbiont';
-  import { mediaPublicUrlPrefix } from '$lib/utils/submission';
+  import { SUPABASE_URL } from '#lib/symbiont.ts';
+  import { mediaPublicUrlPrefix } from '#lib/utils/submission.ts';
 
   interface Props {
     /** Form field name. */

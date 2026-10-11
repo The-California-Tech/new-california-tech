@@ -1,13 +1,8 @@
 import { redirect, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { appDb } from '$lib/utils/app-db';
-import { fetchIssuePosts } from '$lib/utils/feed-query';
-import { buildIssueCards, formatIssueLabel, resolveIssue } from '$lib/utils/issues';
-
-export const config = {
-  maxage: 60,
-  revalidate: 60,
-};
+import { appDb } from '#lib/utils/app-db.ts';
+import { fetchIssuePosts } from '#lib/utils/feed-query.ts';
+import { buildIssueCards, formatIssueLabel, resolveIssue } from '#lib/utils/issues.ts';
 
 export const prerender = false;
 

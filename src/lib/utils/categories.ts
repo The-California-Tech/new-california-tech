@@ -3,7 +3,7 @@
  * is one-way and how a page resolves it (list_categories, then keep every tag
  * that slugs alike -- "Feature" and "feature" are one section).
  */
-import { nameSlug } from '$lib/utils/slug';
+import { nameSlug } from '#lib/utils/slug.ts';
 
 export const categorySlug = nameSlug;
 

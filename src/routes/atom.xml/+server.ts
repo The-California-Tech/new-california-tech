@@ -1,7 +1,7 @@
-import { categoryPath } from '$lib/utils/categories';
+import { categoryPath } from '#lib/utils/categories.ts';
 import type { RequestHandler } from '@sveltejs/kit';
-import { siteConfig } from '$config/site';
-import { symbiont } from '$lib/symbiont';
+import { siteConfig } from '#config/site.ts';
+import { symbiont } from '#lib/symbiont.ts';
 import {
   ARTICLE_ALIAS,
   FEED_ITEM_LIMIT,
@@ -13,7 +13,7 @@ import {
   pageUrl,
   rfc3339,
   type SyndicationPage,
-} from '$lib/utils/syndication';
+} from '#lib/utils/syndication.ts';
 
 export const prerender = false;
 

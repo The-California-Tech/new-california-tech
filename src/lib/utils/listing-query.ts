@@ -8,12 +8,12 @@
  * how they slug. The SQL takes the datasource as an argument (see section 5
  * of 20_tech_feed.sql for why); the choice of articles is made here.
  */
-import { symbiontToTechArticle, type TechPageRow } from '$lib/utils/post-converter';
-import { authorSlug } from '$lib/utils/authors';
-import { categorySlug } from '$lib/utils/categories';
-import type { Post } from '$lib/types/post';
-import type { AppDb } from '$lib/utils/app-db';
-import { ARTICLES_ALIAS } from '$lib/symbiont';
+import { symbiontToTechArticle, type TechPageRow } from '#lib/utils/post-converter.ts';
+import { authorSlug } from '#lib/utils/authors.ts';
+import { categorySlug } from '#lib/utils/categories.ts';
+import type { Post } from '#lib/types/post.d.ts';
+import type { AppDb } from '#lib/utils/app-db.ts';
+import { ARTICLES_ALIAS } from '#lib/symbiont.ts';
 
 export const LISTING_PAGE_SIZE = 30;
 

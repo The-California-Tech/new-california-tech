@@ -1,7 +1,7 @@
 <script lang="ts">
-  import IndexPosts from '$lib/components/index_posts.svelte';
-  import { autoCoverFit, LAYOUT_PRESETS, type LayoutPreset } from '$lib/utils/layout-preset';
-  import type { Post } from '$lib/types/post';
+  import IndexPosts from '#lib/components/index_posts.svelte';
+  import { autoCoverFit, LAYOUT_PRESETS, type LayoutPreset } from '#lib/utils/layout-preset.ts';
+  import type { Post } from '#lib/types/post.d.ts';
 
   /**
    * Covers are inline SVG so this page works offline and, more importantly, so

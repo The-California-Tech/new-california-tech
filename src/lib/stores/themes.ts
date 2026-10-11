@@ -1,7 +1,7 @@
 // packages/california-tech/src/lib/stores/themes.ts
-import type { Theme } from '$lib/types/themes';
+import type { Theme } from '#lib/types/themes.d.ts';
 import { writable } from 'svelte/store';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 export const ThemeLocalStorageKey = 'theme';
 export const DefaultTheme = 'dark';

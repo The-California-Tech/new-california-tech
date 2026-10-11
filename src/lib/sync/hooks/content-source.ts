@@ -46,8 +46,8 @@ import { getPropertyNamedValue, replacePageMarkdown, requireEnvVar, withNotionRe
 import { Client, type RichTextItemResponse } from '@notionhq/client';
 import { INFO_PROPERTY, WHERE_IS_IT_PROPERTY, WHERE_IS_IT_WEB_EDITOR } from '../properties.js';
 import { decideContentSource } from '../content-source-decision.js';
-import { hasEditLink, infoWithEditLink, placeholderBody } from '$lib/server/web-editor';
-import { editLinkForPage, newShareToken, shareUrl, storeShareLinks } from '$lib/server/share-links';
+import { hasEditLink, infoWithEditLink, placeholderBody } from '#lib/server/web-editor.ts';
+import { editLinkForPage, newShareToken, shareUrl, storeShareLinks } from '#lib/server/share-links.ts';
 
 export type ContentSource = 'web' | 'notion';
 

@@ -2,14 +2,14 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { Client, type PageObjectResponse } from '@notionhq/client';
 import { renderMarkdownToHtml, requireEnvVar, withNotionRetry } from 'symbiont-cms/server';
-import { SUPABASE_URL, symbiont } from '$lib/symbiont';
-import { adminDb } from '$lib/server/admin-db';
-import { resolveShareToken } from '$lib/server/share-links';
-import { createRateLimiter } from '$lib/server/submission';
-import { readContentSource } from '$lib/sync/hooks/content-source';
-import { TITLE_PROPERTY, WORD_COUNT_PROPERTY } from '$lib/sync/properties';
-import { countWordsFromMarkdown } from '$lib/utils/word-count';
-import { mediaPublicUrlPrefix, validatePieceEdit, type PieceEditField } from '$lib/utils/submission';
+import { SUPABASE_URL, symbiont } from '#lib/symbiont.ts';
+import { adminDb } from '#lib/server/admin-db.ts';
+import { resolveShareToken } from '#lib/server/share-links.ts';
+import { createRateLimiter } from '#lib/server/submission.ts';
+import { readContentSource } from '#lib/sync/hooks/content-source.ts';
+import { TITLE_PROPERTY, WORD_COUNT_PROPERTY } from '#lib/sync/properties.ts';
+import { countWordsFromMarkdown } from '#lib/utils/word-count.ts';
+import { mediaPublicUrlPrefix, validatePieceEdit, type PieceEditField } from '#lib/utils/submission.ts';
 
 export const prerender = false;
 

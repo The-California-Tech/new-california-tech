@@ -1,5 +1,5 @@
-import type { Site } from '$lib/types/site';
-import type { DD } from '$lib/types/dd';
+import type { Site } from '#lib/types/site.d.ts';
+import type { DD } from '#lib/types/dd.d.ts';
 
 /**
  * The social-share card: og:image and twitter:image (see post_SEO.svelte).
@@ -17,7 +17,7 @@ import type { DD } from '$lib/types/dd';
  * The output is committed, so builds and CI do not depend on sharp. Re-run the
  * script only if the source art or background changes.
  */
-import SiteCover from '$assets/og-card.png';
+import SiteCover from '#assets/og-card.png';
 import { techConfig } from './tech';
 
 export const siteConfig: Site.Config = {

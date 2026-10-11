@@ -3,11 +3,11 @@
   import { onMount, untrack } from 'svelte';
   import { fade } from 'svelte/transition';
   import type { ActionData } from './$types';
-  import '$lib/styles/prose.scss';
-  import { techConfig } from '$config/tech';
-  import SubmissionEditor from '$lib/components/submit/SubmissionEditor.svelte';
-  import { clearDraft, loadDraft, saveDraft } from '$lib/components/submit/draft';
-  import { HONEYPOT_FIELD, SUBMISSION_CATEGORIES, SUBMISSION_LIMITS } from '$lib/utils/submission';
+  import '#lib/styles/prose.scss';
+  import { techConfig } from '#config/tech.ts';
+  import SubmissionEditor from '#lib/components/submit/SubmissionEditor.svelte';
+  import { clearDraft, loadDraft, saveDraft } from '#lib/components/submit/draft.ts';
+  import { HONEYPOT_FIELD, SUBMISSION_CATEGORIES, SUBMISSION_LIMITS } from '#lib/utils/submission.ts';
 
   let { form }: { form: ActionData } = $props();
 

@@ -2,38 +2,40 @@
   import '@unocss/reset/sanitize/sanitize.css';
   import '@unocss/reset/sanitize/assets.css';
   import '@unocss/reset/tailwind.css';
-  import '$lib/styles/defaultTheme.scss';
-  import '$lib/styles/global.scss';
+  import '#lib/styles/defaultTheme.scss';
+  import '#lib/styles/global.scss';
   import 'uno.css';
   import 'tippy.js/dist/tippy.css';
   import 'tippy.js/themes/material.css';
   import 'tippy.js/animations/shift-away.css';
 
   import { fly } from 'svelte/transition';
-  import Head from '$lib/components/head.svelte';
-  import Header from '$lib/components/header.svelte';
-  import Footer from '$lib/components/footer.svelte';
+  import Head from '#lib/components/head.svelte';
+  import Header from '#lib/components/header.svelte';
+  import Footer from '#lib/components/footer.svelte';
   import type { LayoutData } from './$types';
   import type { Snippet } from 'svelte';
 
   let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
-  import { navigating } from '$app/stores';
+  import { navigating } from '$app/state';
   import NProgress from 'nprogress';
-  import '$lib/styles/nprogress.css';
+  import '#lib/styles/nprogress.css';
   // Full list: https://github.com/rstacruz/nprogress#configuration
   NProgress.configure({ minimum: 0.2, easing: 'ease', speed: 600 });
   $effect(() => {
-    if ($navigating) {
+    // $app/state's navigating is always an object; its fields are null when
+    // no navigation is in progress.
+    if (navigating.to) {
       NProgress.start();
     } else {
       NProgress.done();
     }
   });
 
-  import { browser } from '$app/environment';
+  import { browser } from '$app/env';
   import { afterNavigate } from '$app/navigation';
-  import { siteConfig } from '$config/site';
+  import { siteConfig } from '#config/site.ts';
   import { onMount } from 'svelte';
 
   onMount(() => {

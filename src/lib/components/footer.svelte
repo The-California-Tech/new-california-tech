@@ -1,9 +1,9 @@
 <!-- packages/california-tech/src/lib/components/footer.svelte -->
 <script lang="ts">
-  import { siteConfig } from '$config/site';
+  import { siteConfig } from '#config/site.ts';
   import { fly } from 'svelte/transition';
-  import tippy from '$lib/actions/tippy';
-  import { strings } from '$lib/strings';
+  import tippy from '#lib/actions/tippy.ts';
+  import { strings } from '#lib/strings.ts';
 
   let className: string | undefined = undefined;
   export { className as class };
@@ -25,7 +25,7 @@
         href="/atom.xml"
         class="btn btn-ghost"
         aria-label="Atom Feed"
-        data-sveltekit-preload-data="off"
+        data-sveltekit-preload-data="false"
         data-sveltekit-reload>
         <div class="!w-[1.75rem] !h-[1.75rem] i-ic-baseline-rss-feed"></div>
       </a>
@@ -34,7 +34,7 @@
         href="/sitemap.xml"
         class="btn btn-ghost"
         aria-label="Sitemap"
-        data-sveltekit-preload-data="off"
+        data-sveltekit-preload-data="false"
         data-sveltekit-reload>
         <div class="!w-[1.75rem] !h-[1.75rem] i-mdi-sitemap-outline"></div>
       </a>

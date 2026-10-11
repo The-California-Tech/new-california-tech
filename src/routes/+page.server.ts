@@ -1,13 +1,9 @@
 import type { PageServerLoad } from './$types';
-import { appDb } from '$lib/utils/app-db';
-import { fetchFeedPage, FEED_BATCH_SIZE } from '$lib/utils/feed-query';
-import { parsePositiveInt } from '$lib/utils/post-pagination';
+import { appDb } from '#lib/utils/app-db.ts';
+import { fetchFeedPage, FEED_BATCH_SIZE } from '#lib/utils/feed-query.ts';
+import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
 
 // ISR config - enable SvelteKit's ISR caching
-export const config = {
-  maxage: 60,
-  revalidate: 60,
-};
 
 export const prerender = false;
 

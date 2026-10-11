@@ -19,7 +19,7 @@ import {
   normalizeCoverStyle,
   normalizeLayoutPreset,
   normalizeProminence,
-} from '$lib/utils/layout-preset';
+} from '#lib/utils/layout-preset.ts';
 import {
   BYLINE_PROPERTY,
   LAYOUT_APPLIED_PROPERTY,
@@ -28,8 +28,8 @@ import {
   HIDE_SUMMARY_PROPERTY,
   LAYOUT_PROPERTY,
   PROMINENCE_PROPERTY,
-} from '$lib/sync/properties';
-import { reconcileLayout, type GranularLayout } from '$lib/sync/reconcile-layout';
+} from '#lib/sync/properties.ts';
+import { reconcileLayout, type GranularLayout } from '#lib/sync/reconcile-layout.ts';
 
 /** Internal value -> the label an editor sees in the select. */
 const PROMINENCE_LABELS: Record<string, string> = {

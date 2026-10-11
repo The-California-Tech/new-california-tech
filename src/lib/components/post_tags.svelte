@@ -10,7 +10,7 @@
   Tech never used.
 -->
 <script lang="ts">
-  import { categoryPath } from '$lib/utils/categories';
+  import { categoryPath } from '#lib/utils/categories.ts';
 
   let { tags = [] }: { tags?: unknown[] } = $props();
 

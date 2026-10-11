@@ -1,6 +1,6 @@
-import type { TOC } from '$lib/types/toc';
-import type { Tags } from '$lib/types/tags';
-import type { BylineFormat, CoverFit, CoverPlacement, LayoutPreset, Prominence } from '$lib/utils/layout-preset';
+import type { TOC } from '#lib/types/toc.d.ts';
+import type { Tags } from '#lib/types/tags.d.ts';
+import type { BylineFormat, CoverFit, CoverPlacement, LayoutPreset, Prominence } from '#lib/utils/layout-preset.ts';
 export namespace Post {
   export type Post = {
     slug: string;

@@ -19,7 +19,7 @@
  * still honours it, should outsider read-only links ever be wanted.
  */
 import { randomBytes } from 'node:crypto';
-import { adminDb } from '$lib/server/admin-db';
+import { adminDb } from '#lib/server/admin-db.ts';
 
 export function newShareToken(): string {
   return randomBytes(24).toString('base64url');

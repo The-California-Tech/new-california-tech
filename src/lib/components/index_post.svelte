@@ -1,10 +1,10 @@
 <!-- packages/california-tech/src/lib/components/index_post.svelte -->
 <script lang="ts">
-  import type { Post } from '$lib/types/post';
-  import { UserConfig } from '$config/QWER.config';
-  import ImgBanner from '$lib/components/image_banner.svelte';
-  import AuthorLinks from '$lib/components/author_links.svelte';
-  import { categoryPath } from '$lib/utils/categories';
+  import type { Post } from '#lib/types/post.d.ts';
+  import { UserConfig } from '#config/QWER.config.js';
+  import ImgBanner from '#lib/components/image_banner.svelte';
+  import AuthorLinks from '#lib/components/author_links.svelte';
+  import { categoryPath } from '#lib/utils/categories.ts';
 
   const { data, index, showDate = false }: { data: Post.Post; index: number; showDate?: boolean } = $props();
 

@@ -1,11 +1,11 @@
-import { resolveLayoutRecipe, type LayoutPreset } from '$lib/utils/layout-preset';
+import { resolveLayoutRecipe, type LayoutPreset } from '#lib/utils/layout-preset.ts';
 import {
   BYLINE_PROPERTY,
   COVER_PLACEMENT_PROPERTY,
   COVER_STYLE_PROPERTY,
   HIDE_SUMMARY_PROPERTY,
   PROMINENCE_PROPERTY,
-} from '$lib/sync/properties';
+} from '#lib/sync/properties.ts';
 
 /**
  * Reconciling the `Layout` preset with the granular columns it expands into.

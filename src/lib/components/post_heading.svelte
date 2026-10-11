@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { Post } from '$lib/types/post';
-  import { dateConfig, siteConfig } from '$config/site';
-  import ImgZoom from '$lib/components/image_zoom.svelte';
-  import tippy from '$lib/actions/tippy';
-  import { lastUpdatedStr, defaultPublishedStr, defaultUpdatedStr } from '$lib/utils/timeFormat';
-  import { strings } from '$lib/strings';
-  import AuthorLinks from '$lib/components/author_links.svelte';
+  import type { Post } from '#lib/types/post.d.ts';
+  import { dateConfig, siteConfig } from '#config/site.ts';
+  import ImgZoom from '#lib/components/image_zoom.svelte';
+  import tippy from '#lib/actions/tippy.ts';
+  import { lastUpdatedStr, defaultPublishedStr, defaultUpdatedStr } from '#lib/utils/timeFormat.ts';
+  import { strings } from '#lib/strings.ts';
+  import AuthorLinks from '#lib/components/author_links.svelte';
 
   let { data }: { data: Post.Post } = $props();
   // Off by default -- see post-converter. Opt in per article with coverInPost.

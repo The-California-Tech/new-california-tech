@@ -1,5 +1,5 @@
-import type { Post } from '$lib/types/post';
-import type { Issue } from '$lib/types/index';
+import type { Post } from '#lib/types/post.d.ts';
+import type { Issue } from '#lib/types/index.d.ts';
 
 export type PostPreviewPage = {
   posts: Post.Post[];
@@ -34,7 +34,11 @@ type FetchIssueCardsPageOptions = {
 type BuildCountLoadMoreHrefOptions = {
   basePath: string;
   hasMore: boolean;
-  searchParams: URLSearchParams;
+  /**
+   * Only read, then copied. Typed by what it needs so SvelteKit 3's read-only
+   * `page.url.searchParams` can be passed straight in.
+   */
+  searchParams: { toString(): string };
   nextCountHint?: number;
   shownCount?: number;
   renderedCount: number;
@@ -91,7 +95,7 @@ export function buildCountLoadMoreHref(options: BuildCountLoadMoreHrefOptions): 
 
   const nextCount = options.nextCountHint ?? (options.shownCount ?? options.renderedCount) + options.batchSize;
 
-  const params = new URLSearchParams(options.searchParams);
+  const params = new URLSearchParams(options.searchParams.toString());
   params.set('count', String(nextCount));
   return `${options.basePath}?${params.toString()}`;
 }

@@ -1,6 +1,6 @@
 <!-- packages/california-tech/src/lib/components/masthead.svelte -->
 <script lang="ts">
-  import { techConfig } from '$config/tech';
+  import { techConfig } from '#config/tech.ts';
   import TechLogo from './TechLogo.svelte';
 
   // The `resetHome` function is no longer needed.

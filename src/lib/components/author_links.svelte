@@ -11,7 +11,7 @@
   linking nowhere.
 -->
 <script lang="ts">
-  import { authorPath } from '$lib/utils/authors';
+  import { authorPath } from '#lib/utils/authors.ts';
 
   let { authors, microformats = false }: { authors: string[]; microformats?: boolean } = $props();
 </script>

@@ -15,11 +15,11 @@
  * form response hostage. Same rule as the sync-status note: reporting must
  * never become the failure.
  */
-import { env } from '$env/dynamic/private';
-import { techConfig } from '$config/tech';
+import { SUBMISSION_GMAIL_APP_PASSWORD } from '$app/env/private';
+import { techConfig } from '#config/tech.ts';
 import type { Transporter } from 'nodemailer';
-import type { SubmissionInput } from '$lib/utils/submission.js';
-import type { CreatedSubmission } from '$lib/server/submission.js';
+import type { SubmissionInput } from '#lib/utils/submission.ts';
+import type { CreatedSubmission } from '#lib/server/submission.ts';
 
 /**
  * Overall cap on sending, in ms. Generous enough for two messages over one
@@ -47,7 +47,7 @@ interface MailConfig {
  * that should not send mail, in which case sending is skipped with one warning.
  */
 function mailConfig(): MailConfig | null {
-  const appPassword = env.SUBMISSION_GMAIL_APP_PASSWORD;
+  const appPassword = SUBMISSION_GMAIL_APP_PASSWORD;
   if (!appPassword) return null;
   return { user: SENDER, appPassword, editors: techConfig.email };
 }

@@ -109,7 +109,7 @@ export const ImageConfig = {
   SupportedVideoFormat: ['webm', 'mp4'],
   SupportedImageFormat: ['avif', 'png', 'jpg', 'jpeg', 'heif', 'heic', 'tiff', 'gif', 'webp'],
 
-  OriginalImageFolder: '$generated/assets',
+  OriginalImageFolder: '#generated/assets',
   AssetTypePath: 'src/generated/asset.d.ts',
   AssetTypeTemplatePath: '_asset.d.ts',
 

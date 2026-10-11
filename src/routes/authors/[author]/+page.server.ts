@@ -1,8 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { appDb } from '$lib/utils/app-db';
-import { authorSlug } from '$lib/utils/authors';
-import { LISTING_PAGE_SIZE, fetchAuthorPosts, fetchAuthors } from '$lib/utils/listing-query';
+import { appDb } from '#lib/utils/app-db.ts';
+import { authorSlug } from '#lib/utils/authors.ts';
+import { LISTING_PAGE_SIZE, fetchAuthorPosts, fetchAuthors } from '#lib/utils/listing-query.ts';
 
 export const prerender = false;
 

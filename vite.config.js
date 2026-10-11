@@ -10,7 +10,6 @@ import transformerDirective from '@unocss/transformer-directives';
 import transformerVariantGroup from '@unocss/transformer-variant-group';
 import transformerCompileClass from '@unocss/transformer-compile-class';
 import { imagetools } from 'vite-imagetools';
-import path from 'path';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
@@ -106,7 +105,8 @@ export default defineConfig({
       // it has no comment syntax, and Vercel's schema validation rejects unknown
       // top-level keys outright -- a `$comment` array fails the build with
       // "should NOT have additional property `$comment`".)
-      // WHY kit.csp WAS REMOVED
+      //
+      // WHY csp WAS REMOVED
       //   `csp: { mode: 'auto' }` used to be set here, which made SvelteKit emit
       //   a SECOND, independent CSP header alongside vercel.json's. Browsers
       //   enforce multiple CSP headers as an INTERSECTION, so the effective
@@ -115,6 +115,7 @@ export default defineConfig({
       //   'unsafe-inline' in that same directive -- which blocked the
       //   hand-written inline theme bootstrap in src/app.html. SvelteKit only
       //   hashes scripts it injects itself; it does not parse app.html.
+      //
       // NOTES ON THE POLICY IN vercel.json
       //   - img-src allows any https: origin on purpose. Article bodies are
       //     authored in Notion and can embed images from anywhere, so an
@@ -133,30 +134,14 @@ export default defineConfig({
       //     the Tech ever adds GA with its own measurement ID, script-src needs
       //     https://www.googletagmanager.com and connect-src needs
       //     https://www.google-analytics.com.
-      alias: {
-        $QWER: './QWER',
-        $lib: './src/lib',
-        $generated: './src/generated',
-        $stores: './src/lib/stores',
-        $config: './user/config',
-        $assets: './user/assets',
-        $custom: './user/custom',
-        $static: './static',
-      },
+      // =========================================================================
+      //
+      // No `alias` either: the $lib/$config/$generated/... aliases became
+      // package.json "imports" (#lib/*, #config/*, #generated/*, #assets/*),
+      // which SvelteKit 3 uses instead and which plain Node understands too.
       prerender: { entries: ['*'] },
     }),
   ],
-  resolve: {
-    alias: {
-      $QWER: path.resolve('.', 'QWER'),
-      $generated: path.resolve('.', 'src/generated'),
-      $stores: path.resolve('.', 'src/lib/stores'),
-      $config: path.resolve('.', 'user/config'),
-      $assets: path.resolve('.', 'user/assets'),
-      $custom: path.resolve('.', 'user/custom'),
-      $static: path.resolve('.', 'static'),
-    },
-  },
   server: {
     fs: {
       allow: ['..'],

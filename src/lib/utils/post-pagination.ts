@@ -1,4 +1,4 @@
-import { compareStringDesc, getPacificDateKey, type SortablePostLike } from '$lib/utils/post-sorting';
+import { compareStringDesc, getPacificDateKey, type SortablePostLike } from '#lib/utils/post-sorting.ts';
 
 export function parsePositiveInt(value: string | null, fallback: number): number {
   if (!value) return fallback;

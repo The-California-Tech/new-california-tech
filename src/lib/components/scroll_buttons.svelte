@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
+  import { browser } from '$app/env';
   import { fly } from 'svelte/transition';
 
   // Configurable thresholds

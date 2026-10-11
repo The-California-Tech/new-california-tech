@@ -4,17 +4,17 @@
   import { fade, fly } from 'svelte/transition';
 
   // Styles
-  import '$lib/styles/prose.scss';
+  import '#lib/styles/prose.scss';
   import 'katex/dist/katex.min.css';
 
   // QWER Components
-  import PostToc from '$lib/components/toc_root.svelte';
-  import PostHeading from '$lib/components/post_heading.svelte';
-  import SEO from '$lib/components/post_SEO.svelte';
-  import TagsSection from '$lib/components/post_tags.svelte';
+  import PostToc from '#lib/components/toc_root.svelte';
+  import PostHeading from '#lib/components/post_heading.svelte';
+  import SEO from '#lib/components/post_SEO.svelte';
+  import TagsSection from '#lib/components/post_tags.svelte';
 
   // Stores
-  import { tocCur } from '$stores/toc';
+  import { tocCur } from '#lib/stores/toc.ts';
 
   let { data }: { data: PageData } = $props();
 

@@ -10,8 +10,8 @@
  */
 import type { Hook, HookContext, SyncResultReport } from 'symbiont-cms';
 import { appendOrReplaceTaggedLine } from 'symbiont-cms/server';
-import { SYNC_NOTE_PROPERTY as NOTES_PROPERTY_NAME } from '$lib/sync/properties';
-import { isManualSync } from '$lib/sync/manual-trigger';
+import { SYNC_NOTE_PROPERTY as NOTES_PROPERTY_NAME } from '#lib/sync/properties.ts';
+import { isManualSync } from '#lib/sync/manual-trigger.ts';
 
 /** Prefix that marks the line as machine-written, so the next run replaces it. */
 const SYNC_NOTE_TAG = '[sync]';

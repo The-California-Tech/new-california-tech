@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 
 /**
  * Dev-only. This page exists to look at, not to ship -- it renders synthetic

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import type { Tags } from '$lib/types/tags';
+  import type { Tags } from '#lib/types/tags.d.ts';
   let { data }: { data: Tags.Tag } = $props();
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
 
-  const isActive = $derived($page.url.searchParams.get('tag') === data.name);
+  const isActive = $derived(page.url.searchParams.get('tag') === data.name);
 
   function handleClick() {
     // A throwaway copy used only to build the next query string inside this
     // click handler; it is never read reactively, so it is not reactive state.
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams($page.url.searchParams);
+    const params = new URLSearchParams(page.url.search);
     const current = params.get('tag');
     if (current === data.name) {
       params.delete('tag');
@@ -19,7 +19,7 @@
       params.set('tag', data.name);
     }
     const query = params.toString();
-    goto(query ? `?${query}` : '/', { replaceState: true, keepFocus: true, noScroll: true });
+    goto(query ? `?${query}` : '/', { replace: true, reset: false });
   }
 </script>
 

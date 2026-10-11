@@ -1,7 +1,7 @@
 import { readable } from 'svelte/store';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import type { Asset } from '$generated/asset';
+import type { Asset } from '#generated/asset.d.ts';
 
 /*<!-- :QWER IMPORTS: -->*/
 

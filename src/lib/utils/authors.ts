@@ -9,7 +9,7 @@
  * cannot be reversed, so /authors/[author] slugs every known name
  * (list_authors) and keeps all that match, fetching their articles together.
  */
-import { nameSlug } from '$lib/utils/slug';
+import { nameSlug } from '#lib/utils/slug.ts';
 
 export const authorSlug = nameSlug;
 

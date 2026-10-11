@@ -1,5 +1,5 @@
 import { handlePollBlogRequest } from 'symbiont-cms/server';
-import { symbiontSync } from '$lib/symbiont.server.js';
+import { symbiontSync } from '#lib/symbiont.server.ts';
 import type { RequestEvent } from '@sveltejs/kit';
 
 /**

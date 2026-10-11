@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { TOC } from '$lib/types/toc';
-  import TocContent from '$lib/components/toc_content.svelte';
+  import type { TOC } from '#lib/types/toc.d.ts';
+  import TocContent from '#lib/components/toc_content.svelte';
   let { toc }: { toc?: TOC.Heading[] } = $props();
-  import { tocCur } from '$stores/toc';
-  import { browser } from '$app/environment';
-  import { strings } from '$lib/strings';
+  import { tocCur } from '#lib/stores/toc.ts';
+  import { browser } from '$app/env';
+  import { strings } from '#lib/strings.ts';
 
   let pos = { top: 0, left: 0, x: 0, y: 0 };
 

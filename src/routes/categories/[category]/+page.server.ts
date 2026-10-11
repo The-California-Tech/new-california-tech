@@ -1,8 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { appDb } from '$lib/utils/app-db';
-import { categorySlug } from '$lib/utils/categories';
-import { LISTING_PAGE_SIZE, fetchCategories, fetchCategoryPosts } from '$lib/utils/listing-query';
+import { appDb } from '#lib/utils/app-db.ts';
+import { categorySlug } from '#lib/utils/categories.ts';
+import { LISTING_PAGE_SIZE, fetchCategories, fetchCategoryPosts } from '#lib/utils/listing-query.ts';
 
 export const prerender = false;
 

@@ -1,6 +1,6 @@
 <!-- packages/california-tech/src/lib/components/header/TagsCategory.svelte -->
 <script lang="ts">
-  import type { Tags } from '$lib/types/tags';
+  import type { Tags } from '#lib/types/tags.d.ts';
 
   let { category, activeTag = $bindable() } = $props<{
     category: Tags.Category;

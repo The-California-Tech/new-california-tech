@@ -13,8 +13,8 @@
  * type-checks against the result, so an RPC the schema no longer has fails CI.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { symbiont } from '$lib/symbiont';
-import type { Database } from '$lib/types/database.types';
+import { symbiont } from '#lib/symbiont.ts';
+import type { Database } from '#lib/types/database.types.ts';
 
 export type AppDb = SupabaseClient<Database>;
 

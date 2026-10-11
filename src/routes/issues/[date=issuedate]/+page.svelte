@@ -1,8 +1,8 @@
 <script lang="ts">
   import { fly } from 'svelte/transition';
-  import { siteConfig } from '$config/site';
+  import { siteConfig } from '#config/site.ts';
 
-  import IndexPosts from '$lib/components/index_posts.svelte';
+  import IndexPosts from '#lib/components/index_posts.svelte';
 
   let { data } = $props();
 

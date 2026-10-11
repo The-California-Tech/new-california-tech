@@ -11,9 +11,9 @@
  * `issueOffset` for the next. A row offset would drift as soon as one issue got
  * extended to its boundary.
  */
-import { symbiontToTechArticle, type TechPageRow } from '$lib/utils/post-converter';
-import type { Post } from '$lib/types/post';
-import type { AppDb } from '$lib/utils/app-db';
+import { symbiontToTechArticle, type TechPageRow } from '#lib/utils/post-converter.ts';
+import type { Post } from '#lib/types/post.d.ts';
+import type { AppDb } from '#lib/utils/app-db.ts';
 
 export const FEED_BATCH_SIZE = 30;
 

@@ -1,5 +1,5 @@
 import { createSymbiontServer } from 'symbiont-cms/server';
-import { symbiont } from '$lib/symbiont.js';
+import { symbiont } from '#lib/symbiont.ts';
 import {
   excludeAndDeletePrintOnlyHook,
   publishCheckHook,
@@ -10,10 +10,10 @@ import {
   wordCountSyncHook,
   archiveIssueHooks,
   websitePagesHooks,
-} from '$lib/sync/hooks/tech.js';
-import { syncNoteHooks } from '$lib/sync/hooks/sync-note.js';
-import { layoutExpansionHooks } from '$lib/sync/hooks/layout-expansion.js';
-import { contentSourceHooks, contentSourceMetadata } from '$lib/sync/hooks/content-source.js';
+} from '#lib/sync/hooks/tech.ts';
+import { syncNoteHooks } from '#lib/sync/hooks/sync-note.ts';
+import { layoutExpansionHooks } from '#lib/sync/hooks/layout-expansion.ts';
+import { contentSourceHooks, contentSourceMetadata } from '#lib/sync/hooks/content-source.ts';
 
 export const symbiontSync = createSymbiontServer(symbiont, {
   'tech-article-staging': {
