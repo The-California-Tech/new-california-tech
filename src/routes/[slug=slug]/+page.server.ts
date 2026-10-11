@@ -17,8 +17,6 @@ import { renderMarkdownToHtml } from 'symbiont-cms/server';
 import { symbiontToTechArticle } from '#lib/utils/post-converter.ts';
 import { error, redirect } from '@sveltejs/kit';
 
-// ISR config - enable SvelteKit's ISR caching
-
 // Dynamic route - fetches posts from database at request time
 export const prerender = false;
 

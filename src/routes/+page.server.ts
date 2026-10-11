@@ -3,8 +3,6 @@ import { appDb } from '#lib/utils/app-db.ts';
 import { fetchFeedPage, FEED_BATCH_SIZE } from '#lib/utils/feed-query.ts';
 import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
 
-// ISR config - enable SvelteKit's ISR caching
-
 export const prerender = false;
 
 export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
