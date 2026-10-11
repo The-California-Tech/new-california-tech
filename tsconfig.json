@@ -1,32 +1,16 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
+  // SvelteKit 3 generates the parent (node_modules/$app/tsconfig.json) on
+  // `svelte-kit sync`. Import aliases come from package.json "imports"
+  // (#lib/*, #config/*, ...), not from here.
+  "extends": "$app/tsconfig",
   "compilerOptions": {
     "outDir": "build",
-    "allowJs": true,
-    "checkJs": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "types": ["vite/client"]
+    "types": ["$app/types", "vite/client"]
   },
-  "include": [
-    "./.svelte-kit/ambient.d.ts",
-    "./.svelte-kit/env.d.ts",
-    "./.svelte-kit/non-ambient.d.ts",
-    "./types/**/$types.d.ts",
-    "./svelte.config.js",
-    "./vite.config.js",
-    "./vite.config.ts",
-    "./src/**/*.js",
-    "./src/**/*.ts",
-    "./src/**/*.svelte",
-    "./tests/**/*.js",
-    "./tests/**/*.ts",
-    "./tests/**/*.svelte",
-    "./scripts/**/*.ts"
-  ],
-  "exclude": ["node_modules", "build/**/*", "src/lib/template/**/*", "src/generated/**/*"]
+  "include": ["src", "scripts", "*"],
+  // src/lib/template holds QWER's code templates (not valid TS until filled
+  // in); src/generated is QWER's output, regenerated on every build.
+  "exclude": ["src/service-worker", "src/lib/template", "src/generated"]
 }
