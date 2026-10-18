@@ -10,12 +10,20 @@
     class: className,
     separateByIssueDate = true,
     showDateInCard = false,
+    pdfIssueDates = [],
   }: {
     posts?: Post.Post[];
     class?: string;
     separateByIssueDate?: boolean;
     showDateInCard?: boolean;
+    /**
+     * Issue dates (YYYY-MM-DD) with a print PDF; their date dividers link to
+     * /issues/<date>.pdf. Dates not listed get no link, so it never 404s.
+     */
+    pdfIssueDates?: string[];
   } = $props();
+
+  const hasPdf = $derived(new Set(pdfIssueDates));
 
   /**
    * What the card will actually put on the page.
@@ -89,7 +97,21 @@
     {#if separateByIssueDate}
       {#each groupedByIssueDate as issue (issue.issueDate)}
         <section class="issue-section" data-issue-date={issue.issueDate}>
-          <div class="issue-divider">{issue.dateLabel}</div>
+          <div class="issue-divider">
+            <div class="issue-divider-label">
+              <span>{issue.dateLabel}</span>
+              {#if hasPdf.has(issue.issueDate)}
+                <a
+                  class="issue-pdf-link"
+                  href="/issues/{issue.issueDate}.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Print edition of {issue.dateLabel} (PDF)">
+                  Print edition (PDF)
+                </a>
+              {/if}
+            </div>
+          </div>
           <div class="issue-grid-clip">
             <div class="issue-grid">
               {#each issue.posts as p, index (p.slug)}
@@ -165,6 +187,25 @@
       width: 100%;
       height: 0;
       border-top: 3px double var(--qwer-text-color);
+    }
+  }
+
+  .issue-divider-label {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+  }
+
+  .issue-pdf-link {
+    font-size: 0.8em;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+    opacity: 0.75;
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
     }
   }
 

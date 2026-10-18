@@ -2,6 +2,7 @@ import type { PageServerLoad } from './$types';
 import { appDb } from '#lib/utils/app-db.ts';
 import { fetchFeedPage, FEED_BATCH_SIZE } from '#lib/utils/feed-query.ts';
 import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
+import { fetchPdfIssueDates } from '#lib/utils/issues.ts';
 
 export const prerender = false;
 
@@ -18,14 +19,18 @@ export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
     // /api/posts/previews.
     const requestedCount = parsePositiveInt(url.searchParams.get('count'), FEED_BATCH_SIZE);
 
-    const page = await fetchFeedPage(appDb(fetch), {
+    const db = appDb(fetch);
+    const page = await fetchFeedPage(db, {
       query,
       tag,
       targetCount: requestedCount,
     });
+    // For the "print edition" link on each date divider.
+    const pdfIssueDates = await fetchPdfIssueDates(db, page.posts);
 
     return {
       posts: page.posts,
+      pdfIssueDates,
       query,
       tag,
       hasMore: page.hasMore,
@@ -42,6 +47,7 @@ export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
     console.error('[+page.server.ts] Error loading page data:', error);
     return {
       posts: [],
+      pdfIssueDates: [] as string[],
       query: '',
       tag: '',
       hasMore: false,

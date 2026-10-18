@@ -2,6 +2,7 @@ import { symbiont } from '#lib/symbiont.ts';
 import { symbiontToTechArticle } from '#lib/utils/post-converter.ts';
 import { compareStringDesc, getPacificDateKey, sortByPublishDayThenLayoutWeightDesc } from '#lib/utils/post-sorting.ts';
 import type { Issue } from '#lib/types/index.d.ts';
+import type { AppDb } from '#lib/utils/app-db.ts';
 import { getAppThumbnailUrl, getIssueCoverThumbnailUrl } from './image-url';
 
 export const FETCH_BATCH_SIZE = 1000;
@@ -13,6 +14,34 @@ export function normalizeIssueDateFromSlug(rawSlug: string): string {
   const normalized = rawSlug.trim().replace(/^\/+|\/+$/g, '');
   const match = normalized.match(/\d{4}-\d{2}-\d{2}/);
   return match?.[0] ?? '';
+}
+
+/**
+ * Which of these posts' issue dates (YYYY-MM-DD, Pacific -- the same key the
+ * feed groups its date dividers by) have a print PDF at /issues/<date>.pdf.
+ *
+ * Looks up only the dates asked about: tech-archives has ~2000 rows, too many
+ * to pull on every homepage load. Same test as the issue cards' `hasPdf`: an
+ * archive row whose resolver_url is a .pdf, since that is what the .pdf route
+ * streams. Fails open to "no PDFs", which only hides a link.
+ */
+export async function fetchPdfIssueDates(db: AppDb, posts: { published?: string }[]): Promise<string[]> {
+  const dates = [...new Set(posts.map((post) => getPacificDateKey(post.published)).filter(Boolean))];
+  if (dates.length === 0) return [];
+
+  const { data, error } = await db
+    .from('pages')
+    .select('slug, resolver_url:meta->>resolver_url')
+    .eq('datasource_alias', ARCHIVE_ALIAS)
+    .in('slug', dates);
+  if (error) {
+    console.error('[issues] pdf lookup failed:', error.message);
+    return [];
+  }
+  return (data ?? [])
+    .filter((row) => typeof row.resolver_url === 'string' && row.resolver_url.endsWith('.pdf'))
+    .map((row) => normalizeIssueDateFromSlug(String(row.slug ?? '')))
+    .filter(Boolean);
 }
 
 export function formatIssueLabel(issueDate: string): string {

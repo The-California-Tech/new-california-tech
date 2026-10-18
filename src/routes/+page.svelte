@@ -14,6 +14,7 @@
   let { data } = $props();
 
   let posts = $state<Post.Post[]>([]);
+  let pdfIssueDates = $state<string[]>([]);
   let hasMore = $state(false);
   /** Whole issues already rendered — the feed pages by issue, not by row. */
   let nextIssueOffset = $state<number>(0);
@@ -58,6 +59,7 @@
         tag: activeTag,
       });
       posts = mergeUniqueBy(posts, payload.posts, (post) => post.slug);
+      pdfIssueDates = [...new Set([...pdfIssueDates, ...payload.pdfIssueDates])];
       nextIssueOffset = payload.nextIssueOffset;
       hasMore = payload.hasMore;
     } catch (error) {
@@ -69,6 +71,7 @@
 
   $effect(() => {
     posts = serverPosts;
+    pdfIssueDates = data.pdfIssueDates ?? [];
     hasMore = Boolean(data.hasMore);
     nextIssueOffset = data.issueCursor ?? 0;
     hasInitializedFromServer = true;
@@ -117,7 +120,11 @@
     in:fly|global={{ y: 100, duration: 300, delay: 300 }}
     out:fly|global={{ y: -100, duration: 300 }}
     class="h-feed min-h-[50vh] w-full max-w-7xl mx-auto">
-    <IndexPosts posts={renderedPosts} separateByIssueDate={!isFilterMode} showDateInCard={isFilterMode} />
+    <IndexPosts
+      posts={renderedPosts}
+      separateByIssueDate={!isFilterMode}
+      showDateInCard={isFilterMode}
+      pdfIssueDates={hasInitializedFromServer ? pdfIssueDates : (data.pdfIssueDates ?? [])} />
 
     {#if browser && hasMore}
       <div bind:this={sentinel} class="h-8 w-full" aria-hidden="true"></div>

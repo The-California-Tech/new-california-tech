@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { appDb } from '#lib/utils/app-db.ts';
 import { fetchFeedPage, FEED_BATCH_SIZE } from '#lib/utils/feed-query.ts';
 import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
+import { fetchPdfIssueDates } from '#lib/utils/issues.ts';
 
 export const GET: RequestHandler = async ({ fetch, url }) => {
   try {
@@ -14,7 +15,8 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
     const issueOffset = Math.max(0, parsePositiveInt(url.searchParams.get('issueOffset'), 0));
     const batchSize = parsePositiveInt(url.searchParams.get('limit'), FEED_BATCH_SIZE);
 
-    const page = await fetchFeedPage(appDb(fetch), {
+    const db = appDb(fetch);
+    const page = await fetchFeedPage(db, {
       query,
       tag,
       beforeDate,
@@ -51,6 +53,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 
     return Response.json({
       posts: previews,
+      pdfIssueDates: await fetchPdfIssueDates(db, page.posts),
       issueOffset,
       nextIssueOffset: page.issueRank,
       hasMore: page.hasMore,

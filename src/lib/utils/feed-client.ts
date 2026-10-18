@@ -3,6 +3,8 @@ import type { Issue } from '#lib/types/index.d.ts';
 
 export type PostPreviewPage = {
   posts: Post.Post[];
+  /** Issue dates in this page that have a print PDF (see fetchPdfIssueDates). */
+  pdfIssueDates: string[];
   /**
    * Issue cursor, not a row offset: the number of whole issues consumed so
    * far. The feed pages by issue so that a page never ends mid-issue, and a
@@ -64,6 +66,7 @@ export async function fetchPostPreviewPage(
   const payload = await response.json();
   return {
     posts: payload.posts ?? [],
+    pdfIssueDates: payload.pdfIssueDates ?? [],
     nextIssueOffset: payload.nextIssueOffset ?? options.issueOffset,
     hasMore: Boolean(payload.hasMore),
   };
