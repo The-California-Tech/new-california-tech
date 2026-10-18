@@ -35,15 +35,8 @@
 
   import { browser } from '$app/env';
   import { afterNavigate } from '$app/navigation';
-  import { page } from '$app/state';
   import { siteConfig } from '#config/site.ts';
   import { onMount } from 'svelte';
-  import { startVercelObservability } from '#lib/vercel-observability.ts';
-
-  const observability = browser ? startVercelObservability(page.route.id) : null;
-  afterNavigate(({ to }) => {
-    if (to?.route.id) observability?.navigated(to.route.id, to.url.pathname);
-  });
 
   onMount(() => {
     if (browser) {
