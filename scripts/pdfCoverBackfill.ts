@@ -37,7 +37,7 @@
 // which does not know about SvelteKit's aliases.
 import { symbiont } from '../src/lib/symbiont.js';
 import { generateThumbnailBuffer } from '../src/lib/sync/hooks/tech.js';
-import { SUBMISSION_MEDIA_PREFIX } from '../src/lib/utils/submission.js';
+import { PROTECTED_MEDIA_PREFIXES } from '../src/lib/utils/media.js';
 import { uploadBufferToSupabase, cleanupUnusedMedia } from 'symbiont-cms/server';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
@@ -68,9 +68,10 @@ const limit = Number(flagValue('limit') ?? Number.POSITIVE_INFINITY);
  * whole archive strands on the order of two thousand PNGs.
  *
  * --cleanup only ever reports. --cleanup-delete is required to remove anything,
- * because this deletes from the bucket holding the paper's real media and
- * cleanupUnusedMedia's notion of "referenced" is narrower than this app's --
- * see checkMetaReferences below.
+ * because this deletes from the bucket holding the paper's real media.
+ * cleanupUnusedMedia (symbiont >= 1.6) counts content, cover, summary and meta
+ * as references; before that it read content and cover only, and this script
+ * carried its own guard for the rest.
  */
 const cleanup = hasFlag('cleanup') || hasFlag('cleanup-delete');
 const cleanupDelete = hasFlag('cleanup-delete');
@@ -118,72 +119,23 @@ async function fetchArchiveRows(): Promise<ArchiveRow[]> {
   return rows;
 }
 
-const MEDIA_PATH_RE = /\/media\/([^?#\s"')]+)/g;
-
-/**
- * Media paths referenced from places cleanupUnusedMedia does not look.
- *
- * The library scans `pages.content` and `pages.cover` only. This app also
- * resolves covers out of `meta.cover` -- see getStoredIssueCover() in
- * issues.ts, which falls back to it -- and `summary` can carry markdown images.
- * Anything referenced there looks unreferenced to the library and would be
- * deleted. This collects those paths so the sweep below can refuse.
- *
- * The right long-term fix is for cleanupUnusedMedia to take the columns to
- * scan, or for this app to stop storing covers in meta. Until then, this guard
- * is what stands between a --force run and deleting live images.
- */
-async function collectMetaReferences(): Promise<Set<string>> {
-  const referenced = new Set<string>();
-  const PAGE_SIZE = 1000;
-
-  for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from('pages')
-      .select('meta, summary')
-      .range(offset, offset + PAGE_SIZE - 1);
-
-    if (error) throw new Error(`Failed to scan pages for media references: ${error.message}`);
-    if (!data || data.length === 0) break;
-
-    for (const row of data as Array<{ meta: unknown; summary: string | null }>) {
-      for (const text of [row.meta ? JSON.stringify(row.meta) : '', row.summary ?? '']) {
-        if (!text) continue;
-        MEDIA_PATH_RE.lastIndex = 0;
-        let match: RegExpExecArray | null;
-        while ((match = MEDIA_PATH_RE.exec(text)) !== null) referenced.add(match[1]!);
-      }
-    }
-
-    if (data.length < PAGE_SIZE) break;
-  }
-
-  return referenced;
-}
-
-/**
- * Prefixes the sweep must never touch, beyond the library's own `issues/`.
- *
- * `submissions/` holds images from /submit. Their Notion rows are tagged
- * No Sync until an editor accepts them, so no `pages` row references them
- * yet, and the sweep would read every pending submission's images as garbage.
- */
-const SWEEP_EXCLUDE = [SUBMISSION_MEDIA_PREFIX];
+/** Never swept: pending submissions' images and the old site's (utils/media.ts). */
+const SWEEP_EXCLUDE = PROTECTED_MEDIA_PREFIXES;
 
 async function runCleanup() {
   console.log('\n' + '='.repeat(64));
   console.log('MEDIA CLEANUP');
   console.log('='.repeat(64));
 
-  // Always dry-run first, whatever the flags say: the result is what the guard
-  // below inspects, and it is also what gets printed for review.
+  // Always dry-run first, whatever the flags say: it is what gets printed for
+  // review before anything is deleted.
   const preview = await cleanupUnusedMedia(supabase, { dryRun: true, excludePrefixes: SWEEP_EXCLUDE });
   console.log(
     `${preview.totalInBucket} objects in bucket, ${preview.referencedCount} referenced, ` +
       `${preview.deleted} unreferenced`,
   );
   console.log(
-    `(issues/ is excluded by the library and ${SWEEP_EXCLUDE.join(', ')} by this script, so issue PDFs and pending submissions are never touched)`,
+    `(issues/ is excluded by the library and ${SWEEP_EXCLUDE.join(', ')} by this script, so issue PDFs, pending submissions and imported images are never touched)`,
   );
 
   if (preview.deleted === 0) {
@@ -191,19 +143,7 @@ async function runCleanup() {
     return;
   }
 
-  const metaReferenced = await collectMetaReferences();
-  const wouldDeleteLive = preview.deletedPaths.filter((path) => metaReferenced.has(path));
-
-  if (wouldDeleteLive.length > 0) {
-    console.error(`\n!! ABORTING: ${wouldDeleteLive.length} of these are still referenced from meta/summary,`);
-    console.error('   which cleanupUnusedMedia does not scan. Deleting them would break live images:');
-    for (const path of wouldDeleteLive.slice(0, 20)) console.error(`     ${path}`);
-    if (wouldDeleteLive.length > 20) console.error(`     ... and ${wouldDeleteLive.length - 20} more`);
-    console.error('\n   Move those references into pages.cover, or narrow the sweep, before deleting.');
-    return;
-  }
-
-  console.log(`\nNone of the ${preview.deleted} are referenced from meta or summary. Sample:`);
+  console.log(`\nUnreferenced anywhere in pages (content, cover, summary, meta). Sample:`);
   for (const path of preview.deletedPaths.slice(0, 15)) console.log(`   ${path}`);
   if (preview.deletedPaths.length > 15) console.log(`   ... and ${preview.deletedPaths.length - 15} more`);
 

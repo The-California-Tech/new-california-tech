@@ -14,39 +14,47 @@ import {
 import { syncNoteHooks } from '#lib/sync/hooks/sync-note.ts';
 import { layoutExpansionHooks } from '#lib/sync/hooks/layout-expansion.ts';
 import { contentSourceHooks, contentSourceMetadata } from '#lib/sync/hooks/content-source.ts';
+import { PROTECTED_MEDIA_PREFIXES } from '#lib/utils/media.ts';
 
-export const symbiontSync = createSymbiontServer(symbiont, {
-  'tech-article-staging': {
-    slugProperty: 'Website Slug',
-    // No tagsProperty: publicTagsHook reads Tags itself, to drop internal ones.
-    authorsProperty: 'Authors',
-    coverProperty: 'Cover Photo',
-    summaryProperty: 'Website Summary',
-    // content MUST stay false while any article can be database-owned (Source
-    // of Truth = Database): content:sync would write pages.content over the
-    // Notion page. The content-source hooks skip the whole content pipeline for
-    // those pages, which covers it, but this setting is the backstop.
-    syncBackToNotion: {
-      content: false,
-      properties: true,
+export const symbiontSync = createSymbiontServer(
+  symbiont,
+  {
+    'tech-article-staging': {
+      slugProperty: 'Website Slug',
+      // No tagsProperty: publicTagsHook reads Tags itself, to drop internal ones.
+      authorsProperty: 'Authors',
+      coverProperty: 'Cover Photo',
+      summaryProperty: 'Website Summary',
+      // content MUST stay false while any article can be database-owned (Source
+      // of Truth = Database): content:sync would write pages.content over the
+      // Notion page. The content-source hooks skip the whole content pipeline for
+      // those pages, which covers it, but this setting is the backstop.
+      syncBackToNotion: {
+        content: false,
+        properties: true,
+      },
+      shouldSync: excludeAndDeletePrintOnlyHook.fn,
+      isPublished: publishCheckHook.fn,
+      publishDate: (ctx) => publishDateHook.fn(ctx),
+      // One slot, two contributors. Not a second metadata:add hook: symbiont
+      // rejects a slot and a hook on the same event, before syncing anything.
+      addMetadata: async (ctx) => {
+        const merged = { ...(await articlePreviewMetadataHook.fn(ctx)), ...contentSourceMetadata(ctx) };
+        return Object.keys(merged).length > 0 ? merged : null;
+      },
+      transformContent: (ctx) => htmlCodeEmbedHook.fn(ctx),
+      hooks: [publicTagsHook, ...contentSourceHooks, wordCountSyncHook, ...layoutExpansionHooks, ...syncNoteHooks],
     },
-    shouldSync: excludeAndDeletePrintOnlyHook.fn,
-    isPublished: publishCheckHook.fn,
-    publishDate: (ctx) => publishDateHook.fn(ctx),
-    // One slot, two contributors. Not a second metadata:add hook: symbiont
-    // rejects a slot and a hook on the same event, before syncing anything.
-    addMetadata: async (ctx) => {
-      const merged = { ...(await articlePreviewMetadataHook.fn(ctx)), ...contentSourceMetadata(ctx) };
-      return Object.keys(merged).length > 0 ? merged : null;
+    'tech-archives': {
+      hooks: [...archiveIssueHooks, ...syncNoteHooks],
     },
-    transformContent: (ctx) => htmlCodeEmbedHook.fn(ctx),
-    hooks: [publicTagsHook, ...contentSourceHooks, wordCountSyncHook, ...layoutExpansionHooks, ...syncNoteHooks],
+    'tech-website-pages': {
+      slugProperty: 'Slug',
+      hooks: [...websitePagesHooks, ...syncNoteHooks],
+    },
   },
-  'tech-archives': {
-    hooks: [...archiveIssueHooks, ...syncNoteHooks],
+  {
+    // Never swept by a media cleanup, including /api/sync?cleanup=true.
+    media: { protectedPrefixes: PROTECTED_MEDIA_PREFIXES },
   },
-  'tech-website-pages': {
-    slugProperty: 'Slug',
-    hooks: [...websitePagesHooks, ...syncNoteHooks],
-  },
-});
+);

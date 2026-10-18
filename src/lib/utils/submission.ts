@@ -55,9 +55,9 @@ export const SUBMISSION_LIMITS = {
  * Where submission images live inside the `media` bucket.
  *
  * A prefix of their own because symbiont's cleanupUnusedMedia deletes any
- * object no `pages` row references -- and a submission, by design, has no
- * `pages` row until an editor accepts it. Every caller of that sweep must pass
- * this in `excludePrefixes`; see scripts/pdfCoverBackfill.ts.
+ * object no `pages` row references, and an image in a draft that has not been
+ * submitted yet is referenced by nothing. It is in PROTECTED_MEDIA_PREFIXES
+ * (utils/media.ts), which every cleanup honours.
  */
 export const SUBMISSION_MEDIA_PREFIX = 'submissions/';
 
