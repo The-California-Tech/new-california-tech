@@ -45,8 +45,8 @@ importers:
         specifier: 0.35.4
         version: 0.35.4(@types/node@25.5.2)
       symbiont-cms:
-        specifier: github:guutz/symbiont-cms#v1.4.1
-        version: https://codeload.github.com/guutz/symbiont-cms/tar.gz/227392b3057acd87f130b849d485b4ca6cc733bf(supports-color@10.2.2)
+        specifier: github:guutz/symbiont-cms#v1.5.0
+        version: https://codeload.github.com/guutz/symbiont-cms/tar.gz/3947cf797d1b59d88441ccb3f1d0f03ed5e11089(supports-color@10.2.2)
     devDependencies:
       '@changesets/cli':
         specifier: 3.0.2
@@ -4149,9 +4149,9 @@ packages:
     resolution: {integrity: sha512-1YiPCAXT0Ct6g1vOMmSLa0Nsc3QRMvtDF32ihgglGVrugIuIK38RyDiFNXVDhtQ81TJjSO57NdMw6DyYLqSGDQ==}
     engines: {node: '>=18'}
 
-  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/227392b3057acd87f130b849d485b4ca6cc733bf:
-    resolution: {gitHosted: true, integrity: sha512-VbUSZBKrVEKylISzM5xrIYlLTc1FeQwcy84VqsiccvBxVgg353IAYFa5X5UPwlf9lWywUAJzyrlsR5v4orueJA==, tarball: https://codeload.github.com/guutz/symbiont-cms/tar.gz/227392b3057acd87f130b849d485b4ca6cc733bf}
-    version: 1.4.1
+  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/3947cf797d1b59d88441ccb3f1d0f03ed5e11089:
+    resolution: {gitHosted: true, integrity: sha512-2VNfYpiz9si8JYDrMn9wd4/h+0yCXxgOPZbLz9VZ4580guYBXnitddFlCmh0y3oNrfZrXKsFcwpEn4fL61B/3w==, tarball: https://codeload.github.com/guutz/symbiont-cms/tar.gz/3947cf797d1b59d88441ccb3f1d0f03ed5e11089}
+    version: 1.5.0
     engines: {node: '>=22.17.0'}
 
   tar@7.5.13:
@@ -8449,7 +8449,7 @@ snapshots:
     transitivePeerDependencies:
       - '@typescript-eslint/types'
 
-  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/227392b3057acd87f130b849d485b4ca6cc733bf(supports-color@10.2.2):
+  symbiont-cms@https://codeload.github.com/guutz/symbiont-cms/tar.gz/3947cf797d1b59d88441ccb3f1d0f03ed5e11089(supports-color@10.2.2):
     dependencies:
       '@mdit/plugin-abbr': 1.1.0(markdown-it@15.0.1)
       '@mdit/plugin-attrs': 1.3.0(markdown-it@15.0.1)

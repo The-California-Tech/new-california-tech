@@ -1,4 +1,5 @@
 import { createSymbiontClient } from 'symbiont-cms';
+import { embedProviders } from '#lib/utils/embeds.ts';
 
 export const SUPABASE_URL = 'https://xguzskbxiptvhbyggkpl.supabase.co';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_6L-isfCogfHJxcnTT9WseA_U4GUHcAB';
@@ -31,6 +32,9 @@ export const symbiont = createSymbiontClient({
       minHeadingLevel: 1,
       maxHeadingLevel: 4,
     },
+    // Crosshare crosswords: a puzzle link alone in its paragraph renders as
+    // the puzzle. See utils/embeds.ts.
+    embeds: embedProviders,
   },
 
   databases: [

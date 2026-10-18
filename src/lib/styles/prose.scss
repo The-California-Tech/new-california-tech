@@ -116,6 +116,19 @@ figure figcaption {
     --at-apply: 'text-lg';
   }
 
+  // Embeds from symbiont's `markdown.embeds` (utils/embeds.ts). The puzzle
+  // needs its full width and a fixed height: Crosshare's player sizes itself
+  // to the frame, and an iframe cannot size to its content.
+  .embed-crosshare {
+    margin: 1.5em 0;
+    iframe {
+      display: block;
+      width: 100%;
+      height: min(85vh, 720px);
+      border: 0;
+    }
+  }
+
   strong {
     color: var(--qwer-strong-color);
     font-weight: var(--qwer-strong-font-weight);
