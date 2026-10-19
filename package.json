@@ -150,7 +150,7 @@
     "@vercel/speed-insights": "2.1.0-canary",
     "nodemailer": "10.0.14",
     "sharp": "0.35.4",
-    "symbiont-cms": "github:guutz/symbiont-cms#v1.6.0"
+    "symbiont-cms": "github:guutz/symbiont-cms#v1.6.1"
   },
   "packageManager": "pnpm@11.22.0"
 }
