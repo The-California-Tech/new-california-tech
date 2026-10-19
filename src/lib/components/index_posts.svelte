@@ -190,15 +190,34 @@
     }
   }
 
+  /*
+   * Three columns, so the date stays centred on the page whether or not the
+   * issue has a PDF link: the empty first column balances the link's. Below
+   * the first breakpoint there is no room to centre between them, so the
+   * date moves to the left edge and the link keeps the right.
+   */
   .issue-divider-label {
-    display: flex;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: baseline;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.25rem 1rem;
+    column-gap: 1rem;
+    & > span {
+      grid-column: 2;
+    }
+  }
+
+  @media (max-width: 511px) {
+    .issue-divider-label {
+      grid-template-columns: 1fr auto;
+      & > span {
+        grid-column: 1;
+      }
+    }
   }
 
   .issue-pdf-link {
+    justify-self: end;
     font-size: 0.8em;
     text-decoration: underline;
     text-underline-offset: 0.15em;
