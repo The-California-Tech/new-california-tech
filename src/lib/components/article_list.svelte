@@ -13,6 +13,7 @@
   import type { Post } from '#lib/types/post.d.ts';
   import { siteConfig } from '#config/site.ts';
   import ListingPager from '#lib/components/listing_pager.svelte';
+  import { categoryPath } from '#lib/utils/categories.ts';
 
   let {
     posts,
@@ -31,11 +32,20 @@
 
 <ol class="h-feed flex flex-col gap-8">
   {#each posts as post (post.slug)}
+    {@const category = typeof post.tags?.[0] === 'string' ? post.tags[0] : undefined}
+    {@const categoryHref = category ? categoryPath(category) : null}
     <li class="h-entry flex gap-4 items-start">
       <div class="flex-1 min-w-0">
-        <time class="dt-published block text-sm opacity-70 mb-1" datetime={post.published}>
-          {dateFormat.format(new Date(post.published))}
-        </time>
+        <!-- The first tag is the category, as on the homepage cards (index_post.svelte). -->
+        <p class="text-sm opacity-70 mb-1">
+          <time class="dt-published" datetime={post.published}>{dateFormat.format(new Date(post.published))}</time>
+          {#if category}
+            <span aria-hidden="true">·</span>
+            <svelte:element this={categoryHref ? 'a' : 'span'} class="p-category link" href={categoryHref}>
+              {category}
+            </svelte:element>
+          {/if}
+        </p>
         <h2 class="text-2xl font-bold leading-tight mb-2">
           <a class="u-url p-name link" href={post.slug}>{post.title}</a>
         </h2>
