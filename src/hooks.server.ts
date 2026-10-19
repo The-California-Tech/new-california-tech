@@ -2,6 +2,7 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import * as env from '$app/env/private';
 import { setEnvSource } from 'symbiont-cms/server';
 import { siteConfig } from '#config/site.ts';
+import { legacyRedirect } from '#lib/server/legacy-redirects.ts';
 import { sequence } from '@sveltejs/kit/hooks';
 
 /*
@@ -13,6 +14,17 @@ import { sequence } from '@sveltejs/kit/hooks';
  * not declared there.
  */
 setEnvSource(env);
+
+/**
+ * Old-site article URLs (/2023/04/slug/) to where those articles live now.
+ * First in the chain: nothing else needs to run for a request that is only
+ * going to be sent elsewhere. Permanent, so search engines move their links.
+ */
+const legacyRedirectHandler: Handle = async ({ event, resolve }) => {
+  const target = legacyRedirect(event.url.pathname);
+  if (target) return new Response(null, { status: 301, headers: { location: target } });
+  return resolve(event);
+};
 
 const themeHandler: Handle = async ({ event, resolve }) => {
   const theme = event.cookies.get('theme') || 'light';
@@ -28,7 +40,7 @@ const themeHandler: Handle = async ({ event, resolve }) => {
   return response;
 };
 
-export const handle = sequence(themeHandler, async ({ event, resolve }) =>
+export const handle = sequence(legacyRedirectHandler, themeHandler, async ({ event, resolve }) =>
   resolve(event, {
     transformPageChunk: ({ html }) => html.replace('<html lang="en">', `<html lang="${siteConfig.lang ?? 'en'}">`),
   }),
