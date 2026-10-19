@@ -1,7 +1,8 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { siteConfig } from '#config/site.ts';
-  import ArticleList from '#lib/components/article_list.svelte';
+  import IndexPosts from '#lib/components/index_posts.svelte';
+  import ListingPager from '#lib/components/listing_pager.svelte';
 
   let { data } = $props();
 
@@ -18,8 +19,14 @@
   <link rel="canonical" href={canonical} />
 </svelte:head>
 
-<main class="max-w-3xl mx-auto px-4 py-8" in:fade={{ duration: 300, delay: 300 }} out:fade={{ duration: 300 }}>
-  <header class="mb-8 pb-4 border-b-2 border-black dark:border-white">
+<!--
+  Shown like search results -- the homepage's cards, undivided, each with its
+  date -- in the homepage's container, so the cards are the same size as
+  there. Not article_list.svelte: that list has no bylines, which suits an
+  author page and nothing else.
+-->
+<div class="w-full px-8 py-8" in:fade={{ duration: 300, delay: 300 }} out:fade={{ duration: 300 }}>
+  <header class="max-w-7xl mx-auto pb-4 border-b-2 border-black dark:border-white">
     <p class="text-sm uppercase tracking-wide opacity-70 mb-1"><a class="link" href="/categories">Categories</a></p>
     <h1 class="text-4xl font-bold mb-2">{data.category.name}</h1>
     <p class="text-lg opacity-80">
@@ -28,5 +35,8 @@
     </p>
   </header>
 
-  <ArticleList posts={data.posts} pageNumber={data.pageNumber} totalPages={data.totalPages} {basePath} />
-</main>
+  <div class="max-w-7xl mx-auto">
+    <IndexPosts posts={data.posts} separateByIssueDate={false} showDateInCard />
+    <ListingPager pageNumber={data.pageNumber} totalPages={data.totalPages} {basePath} />
+  </div>
+</div>

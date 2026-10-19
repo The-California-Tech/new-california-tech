@@ -1,6 +1,8 @@
 <!--
   A plain chronological list of articles, with a pager: the body of an author
-  or category page.
+  page. (Category pages use the homepage's cards instead, like search results:
+  there the byline is what tells one story from the next, and this list has
+  none -- on an author page every entry would repeat the same name.)
 
   Not the homepage grid. That is a page layout driven by each story's Layout
   preset and grouped by issue; an archive of one writer's or one section's
@@ -10,6 +12,7 @@
 <script lang="ts">
   import type { Post } from '#lib/types/post.d.ts';
   import { siteConfig } from '#config/site.ts';
+  import ListingPager from '#lib/components/listing_pager.svelte';
 
   let {
     posts,
@@ -24,8 +27,6 @@
     day: 'numeric',
     timeZone: siteConfig.timeZone,
   });
-
-  const pageHref = (n: number) => `${basePath}${n > 1 ? `?page=${n}` : ''}`;
 </script>
 
 <ol class="h-feed flex flex-col gap-8">
@@ -55,20 +56,4 @@
   {/each}
 </ol>
 
-{#if totalPages > 1}
-  <nav
-    class="flex justify-between items-center mt-10 pt-4 border-t border-black/20 dark:border-white/20"
-    aria-label="Pages">
-    {#if pageNumber > 1}
-      <a class="link" rel="prev" href={pageHref(pageNumber - 1)}>← Newer</a>
-    {:else}
-      <span></span>
-    {/if}
-    <span class="text-sm opacity-70">Page {pageNumber} of {totalPages}</span>
-    {#if pageNumber < totalPages}
-      <a class="link" rel="next" href={pageHref(pageNumber + 1)}>Older →</a>
-    {:else}
-      <span></span>
-    {/if}
-  </nav>
-{/if}
+<ListingPager {pageNumber} {totalPages} {basePath} />
