@@ -11,7 +11,6 @@
   import PostToc from '#lib/components/toc_root.svelte';
   import PostHeading from '#lib/components/post_heading.svelte';
   import SEO from '#lib/components/post_SEO.svelte';
-  import TagsSection from '#lib/components/post_tags.svelte';
 
   // Stores
   import { tocCur } from '#lib/stores/toc.ts';
@@ -93,8 +92,8 @@
     itemscope
     itemtype="https://schema.org/BlogPosting"
     itemprop="blogPost"
-    class="h-entry flex-none flex flex-col max-w-[55rem] w-full xl:(rounded-t-2xl)">
-    <div in:fade|global={{ duration: 300, delay: 300 }} class="max-w-[55rem]">
+    class="h-entry flex-none flex flex-col max-w-[44rem] w-full">
+    <div in:fade|global={{ duration: 300, delay: 300 }}>
       <PostHeading data={post} />
     </div>
 
@@ -102,7 +101,7 @@
       in:fade|global={{ duration: 300, delay: 300 }}
       bind:this={postElement}
       itemprop="articleBody"
-      class="e-content prose prose-slate dark:prose-invert max-w-[55rem]">
+      class="e-content prose prose-slate dark:prose-invert max-w-none">
       {@html data.html}
     </div>
   </article>
@@ -123,26 +122,28 @@
   class="flex flex-nowrap justify-center">
   <div class="max-w-screen-md flex-1"></div>
 
-  <div id="post-bottom" class="flex-none flex flex-col max-w-[55rem] w-full xl:(rounded-b-2xl)">
-    {#if post.tags && post.tags.length > 0}
-      <TagsSection tags={post.tags} />
-    {/if}
-
+  <div id="post-bottom" class="flex-none flex flex-col max-w-[44rem] w-full">
     <div class="divider"></div>
-
-    <!-- TODO: Next/prev navigation - implement when we have post store with ordering -->
-    <!-- For now, users can navigate via home page or tags -->
   </div>
 
   <div class="max-w-screen-md flex-1"></div>
 </div>
 
 <style lang="scss">
-  #post {
-    background-color: var(--qwer-bg-color);
-  }
-
-  #post-bottom {
-    background-color: var(--qwer-bg-color);
+  /*
+   * Set like the homepage cards' summaries, which is to say like a newspaper
+   * column: one column on the page's own background (no shaded panel), at a
+   * measure short enough for justified text, which is hyphenated so the
+   * justification does not open rivers. The categories and byline are all in
+   * the heading now (post_heading.svelte); nothing about the article trails it.
+   */
+  .e-content {
+    :global(p) {
+      text-align: justify;
+      hyphens: auto;
+      line-height: 1.5;
+      margin-top: 0;
+      margin-bottom: 0.9em;
+    }
   }
 </style>
