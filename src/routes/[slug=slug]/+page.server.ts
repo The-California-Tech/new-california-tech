@@ -15,6 +15,8 @@
 import { symbiont } from '#lib/symbiont.ts';
 import { renderMarkdownToHtml } from 'symbiont-cms/server';
 import { symbiontToTechArticle } from '#lib/utils/post-converter.ts';
+import { appDb } from '#lib/utils/app-db.ts';
+import { issuePageDate } from '#lib/utils/issues.ts';
 import { error, redirect } from '@sveltejs/kit';
 
 // Dynamic route - fetches posts from database at request time
@@ -73,6 +75,12 @@ export const load = async (event: any) => {
   // Convert Symbiont post to QWER format
   const qwerPost = symbiontToTechArticle(post, html, toc);
 
+  // Articles link their date to the issue they ran in; static pages have none.
+  const issueDate =
+    post.datasource_alias === 'tech-article-staging'
+      ? await issuePageDate(appDb(event.fetch), qwerPost.published)
+      : null;
+
   // Set cache headers for client-side navigation
   event.setHeaders({
     'cache-control': 'public, max-age=60, s-maxage=60',
@@ -82,5 +90,6 @@ export const load = async (event: any) => {
     post: qwerPost,
     html,
     toc,
+    issueDate,
   };
 };

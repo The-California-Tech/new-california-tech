@@ -94,7 +94,7 @@
     itemprop="blogPost"
     class="h-entry flex-none flex flex-col max-w-[44rem] w-full">
     <div in:fade|global={{ duration: 300, delay: 300 }}>
-      <PostHeading data={post} />
+      <PostHeading data={post} issueDate={data.issueDate} />
     </div>
 
     <div

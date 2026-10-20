@@ -1,26 +1,29 @@
 <!--
   The article's head, set like a homepage card (index_post.svelte) at its
   narrowest: the headline, then everything about the piece in one centred
-  block -- byline, sections, date -- closed off by a short rule, and only then
+  block -- byline, sections, publish date -- closed off by a short rule, and only then
   the text. Nothing about the article sits after it any more; the tags that
   used to trail the body as #hashtag buttons are the sections line here.
 
-  The sections are told apart from the byline by type rather than by a `#`:
-  italic, slightly muted, divided by thin bars rather than commas. Each
-  links to its category page, and is marked up as a p-category so the h-entry
-  still carries them.
+  The sections are told apart from the byline without a `#`: plain weight
+  beside the bold names, slightly muted, divided by thin bars rather than
+  commas. Each links to its category page, and is marked up as a p-category so
+  the h-entry still carries them.
 -->
 <script lang="ts">
   import type { Post } from '#lib/types/post.d.ts';
-  import { dateConfig, siteConfig } from '#config/site.ts';
+  import { siteConfig } from '#config/site.ts';
   import ImgZoom from '#lib/components/image_zoom.svelte';
-  import tippy from '#lib/actions/tippy.ts';
-  import { lastUpdatedStr, defaultUpdatedStr } from '#lib/utils/timeFormat.ts';
-  import { strings } from '#lib/strings.ts';
+  import { defaultUpdatedStr } from '#lib/utils/timeFormat.ts';
   import AuthorLinks from '#lib/components/author_links.svelte';
   import { categoryPath } from '#lib/utils/categories.ts';
 
-  let { data }: { data: Post.Post } = $props();
+  /**
+   * issueDate: the issue this ran in, when /issues/<date> is a real issue page
+   * (issuePageDate in utils/issues.ts). The date links there; otherwise it is
+   * plain text.
+   */
+  let { data, issueDate = null }: { data: Post.Post; issueDate?: string | null } = $props();
   // Off by default -- see post-converter. Opt in per article with coverInPost.
   const showCoverInPost = $derived(data.coverInPost ?? false);
 
@@ -36,20 +39,8 @@
     day: 'numeric',
     timeZone: siteConfig.timeZone,
   });
-  const exactFormat = (iso: string) =>
-    new Date(iso).toLocaleString(dateConfig.toPublishedString.locales, {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      timeZone: siteConfig.timeZone,
-    });
 
   const publishedDay = $derived(dayFormat.format(new Date(data.published)));
-  // A re-sync touches `updated` without anyone changing a word, so a same-day
-  // update says nothing worth a line.
-  const showUpdated = $derived(Boolean(data.updated) && dayFormat.format(new Date(data.updated)) !== publishedDay);
 </script>
 
 <header class="post-heading">
@@ -83,23 +74,22 @@
     {/if}
 
     <p class="dates">
-      <time
-        use:tippy
-        class="dt-published"
-        aria-label="{strings.FirstPublishedAt()} {exactFormat(data.published)}"
-        datetime={data.published}
-        itemprop="datePublished">
-        {publishedDay}
-      </time>
+      <!--
+        Only the publish date. The updated time stays in the markup for feeds
+        and parsers (dt-updated, dateModified) but is not shown: a re-sync
+        moves it without anyone changing a word.
+      -->
+      <svelte:element
+        this={issueDate ? 'a' : 'span'}
+        class="date-link"
+        href={issueDate ? `/issues/${issueDate}` : undefined}>
+        <time class="dt-published" datetime={data.published} itemprop="datePublished">
+          {publishedDay}
+        </time>
+      </svelte:element>
       <time class="hidden dt-updated" datetime={data.updated} itemprop="dateModified">
         {defaultUpdatedStr(data.updated)}
       </time>
-      {#if showUpdated}
-        <span class="sep" aria-hidden="true">·</span>
-        <span use:tippy aria-label="{strings.LastUpdatedAt()} {exactFormat(data.updated)}">
-          Updated {lastUpdatedStr(data.updated)}
-        </span>
-      {/if}
     </p>
   </div>
 
@@ -159,13 +149,11 @@
   }
 
   /*
-   * Section labels, not words in a sentence: italic, so they read as a
-   * different kind of thing from the bold byline above and the dates below.
-   * Separated by a thin bar rather than commas, which would read as a list
-   * of names.
+   * Section labels, not words in a sentence: muted beside the bold byline,
+   * and separated by a thin bar rather than commas, which would read as a
+   * list of names.
    */
   .section {
-    font-style: italic;
     color: inherit;
     text-decoration: none;
     opacity: 0.75;
@@ -175,7 +163,6 @@
       display: inline-block;
       margin: 0 0.6em;
       opacity: 0.45;
-      font-style: normal;
     }
   }
 
@@ -189,9 +176,15 @@
     --at-apply: 'text-sm op-70';
   }
 
-  .sep {
-    margin: 0 0.4em;
-    opacity: 0.55;
+  /* Like the section links: part of the byline, underlined only on hover. */
+  .date-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a.date-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
   }
 
   .cover {

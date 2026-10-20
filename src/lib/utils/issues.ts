@@ -44,6 +44,47 @@ export async function fetchPdfIssueDates(db: AppDb, posts: { published?: string 
     .filter(Boolean);
 }
 
+/**
+ * The issue date (YYYY-MM-DD, Pacific) of an article published at
+ * `published`, if /issues/<that date> is a real issue page; otherwise null.
+ *
+ * "Real" by the same test buildIssueCards uses -- an archive row for the
+ * date, or at least MIN_WEBSITE_ARTICLES_PER_ISSUE published articles on it
+ * -- because /issues/<date> for any other date redirects to the NEAREST
+ * issue, which is not where a link on this article's date should go. Asks
+ * only about the one date: building every issue card costs every row.
+ *
+ * Fails closed to null, which only drops a link.
+ */
+export async function issuePageDate(db: AppDb, published?: string): Promise<string | null> {
+  const date = getPacificDateKey(published);
+  if (!date) return null;
+
+  const { count: archived, error: archiveError } = await db
+    .from('pages')
+    .select('slug', { count: 'exact', head: true })
+    .eq('datasource_alias', ARCHIVE_ALIAS)
+    .like('slug', `%${date}%`);
+  if (archiveError) return null;
+  if (archived) return date;
+
+  // A Pacific day falls inside this UTC window whatever the offset; the exact
+  // day is then checked per row, the same way the issue cards group them.
+  const from = new Date(`${date}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - 1);
+  const to = new Date(`${date}T00:00:00Z`);
+  to.setUTCDate(to.getUTCDate() + 2);
+  const { data, error } = await db
+    .from('pages')
+    .select('publish_at')
+    .eq('datasource_alias', WEBSITE_ALIAS)
+    .gte('publish_at', from.toISOString())
+    .lt('publish_at', to.toISOString());
+  if (error) return null;
+  const sameDay = (data ?? []).filter((row) => getPacificDateKey(row.publish_at ?? undefined) === date).length;
+  return sameDay >= MIN_WEBSITE_ARTICLES_PER_ISSUE ? date : null;
+}
+
 export function formatIssueLabel(issueDate: string): string {
   const parsed = new Date(`${issueDate}T12:00:00-08:00`);
   if (Number.isNaN(parsed.getTime())) {
