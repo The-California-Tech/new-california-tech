@@ -29,6 +29,7 @@ const STATIC_ROUTES: Entry[] = [
   { loc: absoluteUrl('categories'), changefreq: 'weekly', priority: '0.5' },
   { loc: absoluteUrl('authors'), changefreq: 'weekly', priority: '0.5' },
   { loc: absoluteUrl('submit'), changefreq: 'yearly', priority: '0.3' },
+  { loc: absoluteUrl('privacy'), changefreq: 'yearly', priority: '0.2' },
 ];
 
 /**

@@ -134,7 +134,7 @@ function notificationText(input: SubmissionInput, created: CreatedSubmission): s
     '',
     created.notionUrl ? `In Notion: ${created.notionUrl}` : 'Find it in tech-article-staging under "web submission".',
     '',
-    'It is tagged No Sync, so it will not reach the site until an editor removes that tag.',
+    'It is not public: it reaches the site only once an editor sets Status to Published and gives it an Issue or Website Publish Date.',
     'Replying to this email replies to the submitter.',
   ].join('\n');
 }

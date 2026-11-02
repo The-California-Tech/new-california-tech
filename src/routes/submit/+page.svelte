@@ -237,6 +237,12 @@
           <a class="link" href="mailto:{techConfig.email}">{techConfig.email}</a>
         </p>
       </div>
+      <!-- At the point of collection, as well as in the footer. -->
+      <!-- prettier-ignore -->
+      <p class="text-sm opacity-70">
+        Your name and email go to the editors only, to handle this piece and contact you about it. See our
+        <a class="link" href="/privacy">privacy notice</a>.
+      </p>
     </form>
   {/if}
 </main>

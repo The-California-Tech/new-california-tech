@@ -1,4 +1,5 @@
 import { error, redirect } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { ARTICLES_ALIAS } from '#lib/symbiont.ts';
 import { appDb } from '#lib/utils/app-db.ts';
 
@@ -13,7 +14,7 @@ import { appDb } from '#lib/utils/app-db.ts';
  * The redirect must never be cached, by the CDN or the browser, or every
  * visit would land on the same article.
  */
-export async function GET({ fetch, setHeaders }) {
+export const GET: RequestHandler = async ({ fetch, setHeaders }) => {
   setHeaders({ 'cache-control': 'no-store' });
   const db = appDb(fetch);
 
@@ -34,4 +35,4 @@ export async function GET({ fetch, setHeaders }) {
   if (pickError || !data?.slug) error(503, 'Could not pick an article');
 
   redirect(302, `/${data.slug}`);
-}
+};

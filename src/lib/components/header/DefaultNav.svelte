@@ -38,16 +38,23 @@
     { name: 'All Categories', href: '/categories' },
     { name: 'Submit', href: '/submit' },
     { name: 'About', href: '/about' },
+    // Caltech requires externally hosted sites to show their privacy notice
+    // prominently; /privacy links the Caltech Privacy Notice and the rest.
+    { name: 'Privacy', href: '/privacy' },
   ];
 </script>
 
 <div class="flex items-center justify-between max-w-7xl mx-auto px-4 sm:px-8 h-full gap-4">
-  <!-- Main navigation links -->
-  <nav class="hidden lg:flex items-center gap-1" aria-label="Primary">
+  <!--
+    Main navigation links. Tighter padding from lg up to xl: at 1024px, ten
+    items at px-3 wrap the two-word labels onto two lines and push the icons
+    off the row. Labels never wrap.
+  -->
+  <nav class="hidden lg:flex items-center gap-0.5 xl:gap-1" aria-label="Primary">
     {#each sections as section (section.href ?? section.name)}
       <a
         href={section.href}
-        class="px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors"
+        class="px-2 xl:px-3 py-2 whitespace-nowrap hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors"
         class:font-bold={page.url.pathname === section.href ||
           (page.url.pathname.startsWith('/issues') && section.href === '/issues')}>
         {#if section.emphasizeTech}
