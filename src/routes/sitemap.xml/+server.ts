@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { symbiont } from '#lib/symbiont.ts';
 import { appDb } from '#lib/utils/app-db.ts';
 import { buildIssueCards } from '#lib/utils/issues.ts';
 import { fetchAuthors, fetchCategories } from '#lib/utils/listing-query.ts';
@@ -9,7 +8,7 @@ import {
   SYNDICATION_CACHE_CONTROL,
   absoluteUrl,
   escapeXml,
-  fetchAllPages,
+  fetchSitemapRows,
   pageUrl,
   rfc3339,
 } from '#lib/utils/syndication.ts';
@@ -48,26 +47,34 @@ const STATIC_ROUTES: Entry[] = [
  * was a near-duplicate of `/` and listing them would have invited Google to
  * pick its own canonical among them.
  */
-const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
+const render = async (fetch: typeof globalThis.fetch): Promise<{ xml: string; complete: boolean }> => {
+  // Each section degrades to empty rather than failing the whole sitemap, but
+  // a sitemap missing a section must not sit in the CDN for an hour.
+  let complete = true;
   const [articles, sitePages, issues, authors, categories] = await Promise.all([
-    fetchAllPages(symbiont, { fetch, alias: ARTICLE_ALIAS }).catch((error) => {
+    fetchSitemapRows(fetch, ARTICLE_ALIAS).catch((error) => {
       console.error('[sitemap.xml] articles failed:', error);
+      complete = false;
       return [];
     }),
-    fetchAllPages(symbiont, { fetch, alias: SITE_PAGE_ALIAS }).catch((error) => {
+    fetchSitemapRows(fetch, SITE_PAGE_ALIAS).catch((error) => {
       console.error('[sitemap.xml] site pages failed:', error);
+      complete = false;
       return [];
     }),
     buildIssueCards(fetch).catch((error) => {
       console.error('[sitemap.xml] issues failed:', error);
+      complete = false;
       return [];
     }),
     fetchAuthors(appDb(fetch)).catch((error) => {
       console.error('[sitemap.xml] authors failed:', error);
+      complete = false;
       return [];
     }),
     fetchCategories(appDb(fetch)).catch((error) => {
       console.error('[sitemap.xml] categories failed:', error);
+      complete = false;
       return [];
     }),
   ]);
@@ -140,18 +147,20 @@ const render = async (fetch: typeof globalThis.fetch): Promise<string> => {
     )
     .join('\n');
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls}
 </urlset>
 `;
+  return { xml, complete };
 };
 
 export const GET: RequestHandler = async ({ fetch }) => {
-  return new Response(await render(fetch), {
+  const { xml, complete } = await render(fetch);
+  return new Response(xml, {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': SYNDICATION_CACHE_CONTROL,
+      'Cache-Control': complete ? SYNDICATION_CACHE_CONTROL : 'public, max-age=0, s-maxage=60',
     },
   });
 };

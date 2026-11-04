@@ -15,7 +15,7 @@
  * publish embargoed articles.
  */
 import { siteConfig } from '#config/site.ts';
-import type { symbiont } from '#lib/symbiont.ts';
+import { appDb } from '#lib/utils/app-db.ts';
 
 /** The live article set. Despite the name, this is production, not staging -- */
 /** public.list_homepage_posts hardcodes the same alias for the homepage feed. */
@@ -23,8 +23,6 @@ export const ARTICLE_ALIAS = 'tech-article-staging';
 
 /** Static site pages (About, Masthead, ...), served at /<slug>. */
 export const SITE_PAGE_ALIAS = 'tech-website-pages';
-
-type SymbiontClient = typeof symbiont;
 
 /** A row of public.pages, loosely typed -- these endpoints touch few fields. */
 export type SyndicationPage = {
@@ -134,40 +132,46 @@ export function authorNames(page: SyndicationPage): string[] {
   return names.length ? names : [siteConfig.author?.name ?? siteConfig.title];
 }
 
+/** What the sitemap needs from a row: its URL and when it last changed. */
+export type SitemapRow = Pick<SyndicationPage, 'slug' | 'publish_at' | 'updated_at'>;
+
 /**
- * Fetch every page for an alias, not just the first 100.
+ * Every public row for an alias, with only the columns the sitemap uses.
  *
- * getAllPages() defaults to limit 100, which the sitemap inherited -- so the
- * sitemap advertised only the 100 most recent articles and the rest of the
- * archive was left for Google to find by crawling, or not at all. This pages
- * until a short batch comes back.
+ * This used to page through symbiont.getAllPages(), which selects `*` -- so
+ * each sitemap render pulled the full markdown of every article to read three
+ * fields from it. On launch day, with crawlers fetching /sitemap.xml, that was
+ * part of what pushed the database into statement timeouts.
  *
- * pageSize stays well under PostgREST's default 1000-row ceiling. maxPages is a
- * guard against an infinite loop if a future change ever makes the underlying
- * query return a full batch forever; hitting it logs rather than throwing,
- * because a truncated sitemap is much better than a 500 on /sitemap.xml.
+ * Read through appDb(), the same publishable-key client, so the RLS note
+ * above still holds. Ordered by page_id so offset paging is stable.
+ *
+ * pageSize stays well under PostgREST's 1000-row ceiling. maxPages is a guard
+ * against looping forever; hitting it logs rather than throwing, because a
+ * truncated sitemap is much better than a 500 on /sitemap.xml.
  */
-export async function fetchAllPages(
-  client: SymbiontClient,
-  options: { fetch: typeof globalThis.fetch; alias: string; pageSize?: number; maxPages?: number },
-): Promise<SyndicationPage[]> {
-  const pageSize = options.pageSize ?? 500;
-  const maxPages = options.maxPages ?? 40;
-  const all: SyndicationPage[] = [];
+export async function fetchSitemapRows(
+  fetch: typeof globalThis.fetch,
+  alias: string,
+  { pageSize = 500, maxPages = 40 }: { pageSize?: number; maxPages?: number } = {},
+): Promise<SitemapRow[]> {
+  const db = appDb(fetch);
+  const all: SitemapRow[] = [];
 
   for (let index = 0; index < maxPages; index++) {
-    const batch = (await client.getAllPages({
-      fetch: options.fetch,
-      alias: options.alias,
-      limit: pageSize,
-      offset: index * pageSize,
-    })) as SyndicationPage[];
+    const { data, error } = await db
+      .from('pages')
+      .select('slug, publish_at, updated_at')
+      .eq('datasource_alias', alias)
+      .order('page_id')
+      .range(index * pageSize, (index + 1) * pageSize - 1);
+    if (error) throw new Error(`[syndication] ${alias}: ${error.message}`);
 
-    all.push(...batch);
-    if (batch.length < pageSize) return all;
+    all.push(...data);
+    if (data.length < pageSize) return all;
   }
 
-  console.warn(`[syndication] hit maxPages (${maxPages}) for alias "${options.alias}"; output is truncated`);
+  console.warn(`[syndication] hit maxPages (${maxPages}) for alias "${alias}"; output is truncated`);
   return all;
 }
 
