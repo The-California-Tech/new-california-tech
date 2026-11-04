@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
 import { buildIssueCards } from '#lib/utils/issues.ts';
+import { PAGE_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 const ISSUE_PAGE_BATCH_SIZE = 24;
 
@@ -12,13 +13,16 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
     const end = Math.min(offset + limit, issues.length);
     const page = issues.slice(offset, end);
 
-    return Response.json({
-      issues: page,
-      offset,
-      nextOffset: end,
-      hasMore: end < issues.length,
-      totalCount: issues.length,
-    });
+    return Response.json(
+      {
+        issues: page,
+        offset,
+        nextOffset: end,
+        hasMore: end < issues.length,
+        totalCount: issues.length,
+      },
+      { headers: { 'cache-control': PAGE_CACHE_CONTROL } },
+    );
   } catch (error) {
     console.error('[/api/issues/cards] Error fetching issues cards:', error);
     return Response.json({ error: 'Failed to fetch issues cards' }, { status: 500 });

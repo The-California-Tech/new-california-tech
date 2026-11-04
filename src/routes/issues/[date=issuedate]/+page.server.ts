@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import { appDb } from '#lib/utils/app-db.ts';
 import { fetchIssuePosts } from '#lib/utils/feed-query.ts';
 import { buildIssueCards, formatIssueLabel, resolveIssue } from '#lib/utils/issues.ts';
+import { PAGE_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 export const prerender = false;
 
@@ -21,7 +22,7 @@ export const prerender = false;
  * Endless scroll-back still lives on `/`, where the URL does not claim to be
  * about any particular date.
  */
-export const load: PageServerLoad = async ({ fetch, params, url, cookies }) => {
+export const load: PageServerLoad = async ({ fetch, params, url, cookies, setHeaders }) => {
   const theme = cookies.get('theme') || 'light';
   const requestedIssueDate = params.date;
 
@@ -75,6 +76,10 @@ export const load: PageServerLoad = async ({ fetch, params, url, cookies }) => {
     // treat a mismatch as "nothing here matches" instead.
     const isThisIssue = issue.issueDate === issueDate;
     const posts = isThisIssue ? issue.posts : [];
+
+    // Cached at the CDN only once it has worked: the error path below renders
+    // an empty issue, which must not be served for minutes after a blip.
+    setHeaders({ 'cache-control': PAGE_CACHE_CONTROL });
 
     return {
       posts,

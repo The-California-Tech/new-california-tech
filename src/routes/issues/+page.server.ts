@@ -1,12 +1,13 @@
 import type { PageServerLoad } from './$types';
 import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
 import { buildIssueCards } from '#lib/utils/issues.ts';
+import { PAGE_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 export const prerender = false;
 
 const ISSUE_PAGE_BATCH_SIZE = 24;
 
-export const load: PageServerLoad = async ({ fetch, cookies, url }) => {
+export const load: PageServerLoad = async ({ fetch, cookies, url, setHeaders }) => {
   try {
     const requestedCount = parsePositiveInt(url.searchParams.get('count'), ISSUE_PAGE_BATCH_SIZE);
     const issues = await buildIssueCards(fetch);
@@ -14,6 +15,9 @@ export const load: PageServerLoad = async ({ fetch, cookies, url }) => {
     const shownCount = Math.min(requestedCount, issues.length);
     const pagedIssues = issues.slice(0, shownCount);
     const nextCount = Math.min(shownCount + ISSUE_PAGE_BATCH_SIZE, issues.length);
+
+    // Only on success; the catch below renders an empty index.
+    setHeaders({ 'cache-control': PAGE_CACHE_CONTROL });
 
     return {
       issues: pagedIssues,

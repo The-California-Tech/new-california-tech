@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import { appDb } from '#lib/utils/app-db.ts';
 import { categorySlug } from '#lib/utils/categories.ts';
 import { LISTING_PAGE_SIZE, fetchCategories, fetchCategoryPosts } from '#lib/utils/listing-query.ts';
+import { PAGE_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 export const prerender = false;
 
@@ -27,6 +28,6 @@ export const load: PageServerLoad = async ({ fetch, params, url, setHeaders }) =
   const totalPages = Math.max(1, Math.ceil(total / LISTING_PAGE_SIZE));
   if (pageNumber > totalPages) error(404, 'No such page');
 
-  setHeaders({ 'cache-control': 'public, max-age=60, s-maxage=300' });
+  setHeaders({ 'cache-control': PAGE_CACHE_CONTROL });
   return { category: { name: category.name, slug }, posts, total, pageNumber, totalPages };
 };

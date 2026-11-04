@@ -3,6 +3,7 @@ import { appDb } from '#lib/utils/app-db.ts';
 import { fetchFeedPage, FEED_BATCH_SIZE } from '#lib/utils/feed-query.ts';
 import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
 import { fetchPdfIssueDates } from '#lib/utils/issues.ts';
+import { FEED_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 export const GET: RequestHandler = async ({ fetch, url }) => {
   try {
@@ -51,15 +52,19 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
       coverStyle: post.coverStyle,
     }));
 
-    return Response.json({
-      posts: previews,
-      pdfIssueDates: await fetchPdfIssueDates(db, page.posts),
-      issueOffset,
-      nextIssueOffset: page.issueRank,
-      hasMore: page.hasMore,
-      totalCount: page.totalPosts,
-      beforeDate: beforeDate || null,
-    });
+    return Response.json(
+      {
+        posts: previews,
+        pdfIssueDates: await fetchPdfIssueDates(db, page.posts),
+        issueOffset,
+        nextIssueOffset: page.issueRank,
+        hasMore: page.hasMore,
+        totalCount: page.totalPosts,
+        beforeDate: beforeDate || null,
+      },
+      // Success only; the 500 below is not cached.
+      { headers: { 'cache-control': FEED_CACHE_CONTROL } },
+    );
   } catch (error) {
     console.error('[/api/posts/previews] Error fetching previews:', error);
     return Response.json({ error: 'Failed to fetch previews' }, { status: 500 });

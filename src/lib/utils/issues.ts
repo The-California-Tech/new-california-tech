@@ -1,8 +1,6 @@
-import { symbiont } from '#lib/symbiont.ts';
-import { symbiontToTechArticle } from '#lib/utils/post-converter.ts';
-import { compareStringDesc, getPacificDateKey, sortByPublishDayThenLayoutWeightDesc } from '#lib/utils/post-sorting.ts';
+import { compareStringDesc, getPacificDateKey } from '#lib/utils/post-sorting.ts';
 import type { Issue } from '#lib/types/index.d.ts';
-import type { AppDb } from '#lib/utils/app-db.ts';
+import { appDb, type AppDb } from '#lib/utils/app-db.ts';
 import { getAppThumbnailUrl, getIssueCoverThumbnailUrl } from './image-url';
 
 export const FETCH_BATCH_SIZE = 1000;
@@ -112,12 +110,10 @@ function getStoredIssueCover(page: { cover?: unknown; meta?: Record<string, unkn
   return undefined;
 }
 
-function indexWebsiteIssuesByDate(
-  websitePosts: Awaited<ReturnType<typeof symbiontToTechArticle>>[],
-): Map<string, { articleCount: number }> {
+function indexWebsiteIssuesByDate(publishDates: (string | null)[]): Map<string, { articleCount: number }> {
   const issueMap = new Map<string, { articleCount: number }>();
-  for (const post of websitePosts) {
-    const issueDate = getPacificDateKey(post.published);
+  for (const published of publishDates) {
+    const issueDate = getPacificDateKey(published ?? undefined);
     if (!issueDate) continue;
 
     const existing = issueMap.get(issueDate);
@@ -131,57 +127,61 @@ function indexWebsiteIssuesByDate(
   return issueMap;
 }
 
+/** The archive columns the issue cards use -- and only those. */
+interface ArchiveIssueRow {
+  slug: string | null;
+  title: string | null;
+  cover: string | null;
+  meta_cover: string | null;
+  resolver_url: string | null;
+}
+
 function indexArchiveIssuesByDate(
-  archivePosts: Awaited<ReturnType<typeof symbiont.getAllPages>>,
+  archiveRows: ArchiveIssueRow[],
 ): Map<string, { title: string; cover?: string; hasPdf: boolean }> {
   const issueMap = new Map<string, { title: string; cover?: string; hasPdf: boolean }>();
 
-  for (const post of archivePosts) {
-    const issueDate = normalizeIssueDateFromSlug(String(post.slug ?? ''));
+  for (const row of archiveRows) {
+    const issueDate = normalizeIssueDateFromSlug(String(row.slug ?? ''));
     if (!issueDate || issueMap.has(issueDate)) continue;
 
-    const metadata = post.meta && typeof post.meta === 'object' ? (post.meta as Record<string, unknown>) : {};
-    const resolverUrl = typeof metadata.resolver_url === 'string' ? metadata.resolver_url : undefined;
-
     issueMap.set(issueDate, {
-      title: post.title ?? `Issue ${issueDate}`,
-      cover: getStoredIssueCover({ cover: post.cover, meta: metadata }),
-      hasPdf: Boolean(resolverUrl?.endsWith('.pdf')),
+      title: row.title ?? `Issue ${issueDate}`,
+      cover: getStoredIssueCover({ cover: row.cover, meta: { cover: row.meta_cover } }),
+      hasPdf: Boolean(row.resolver_url?.endsWith('.pdf')),
     });
   }
 
   return issueMap;
 }
 
-export async function fetchAllPagesByAlias(
-  fetchFn: typeof fetch,
-  alias: string,
-): Promise<Awaited<ReturnType<typeof symbiont.getAllPages>>> {
-  const allPages: Awaited<ReturnType<typeof symbiont.getAllPages>> = [];
-  let offset = 0;
-
-  while (true) {
-    const batch = await symbiont.getAllPages({
-      fetch: fetchFn,
-      alias,
-      limit: FETCH_BATCH_SIZE,
-      offset,
-    });
-
-    if (batch.length === 0) {
-      break;
-    }
-
-    allPages.push(...batch);
-
-    if (batch.length < FETCH_BATCH_SIZE) {
-      break;
-    }
-
-    offset += FETCH_BATCH_SIZE;
+/**
+ * Every public row of one datasource, but only the named columns.
+ *
+ * This used to go through symbiont.getAllPages, which selects `*`: every
+ * article's full text, ~2000 archive rows' metadata, on every issue page and
+ * every sitemap request. When the site went live a crawler walked the
+ * /issues/<date> pages, and that load took the database down (PostgREST:
+ * "Could not query the database for the schema cache"). The issue list needs a
+ * date and a few short fields per row; ask for nothing more.
+ *
+ * Paged in FETCH_BATCH_SIZE rows, the most PostgREST returns at once.
+ */
+async function fetchAllRows<T>(fetchFn: typeof fetch, alias: string, columns: string): Promise<T[]> {
+  const db = appDb(fetchFn);
+  const rows: T[] = [];
+  for (let offset = 0; ; offset += FETCH_BATCH_SIZE) {
+    const { data, error } = await db
+      .from('pages')
+      .select(columns)
+      .eq('datasource_alias', alias)
+      .order('page_id')
+      .range(offset, offset + FETCH_BATCH_SIZE - 1);
+    if (error) throw new Error(`Query error: ${error.message}`);
+    const batch = (data ?? []) as unknown as T[];
+    rows.push(...batch);
+    if (batch.length < FETCH_BATCH_SIZE) return rows;
   }
-
-  return allPages;
 }
 
 export interface ResolvedIssue {
@@ -248,16 +248,42 @@ export function resolveIssue(issues: Issue.Card[], requestedDate: string): Resol
   };
 }
 
-export async function buildIssueCards(fetchFn: typeof fetch): Promise<Issue.Card[]> {
-  const [websitePosts, archivePosts] = await Promise.all([
-    fetchAllPagesByAlias(fetchFn, WEBSITE_ALIAS),
-    fetchAllPagesByAlias(fetchFn, ARCHIVE_ALIAS),
+/**
+ * How long a warm server instance reuses the issue list. Every /issues/<date>
+ * page needs the whole list (to resolve the date and find its neighbours), and
+ * a crawler visits each of ~2000 of them once -- each a different URL, so the
+ * CDN cache never helps. Without this, every one of those requests rebuilt the
+ * list from the database. A new issue appears within this long; the list
+ * changes a few times a week.
+ */
+const ISSUE_CARDS_TTL_MS = 5 * 60 * 1000;
+let issueCardsCache: { at: number; cards: Promise<Issue.Card[]> } | null = null;
+
+/** The issue list, shared for ISSUE_CARDS_TTL_MS per instance. Failures are not kept. */
+export function buildIssueCards(fetchFn: typeof fetch): Promise<Issue.Card[]> {
+  const now = Date.now();
+  if (issueCardsCache && now - issueCardsCache.at < ISSUE_CARDS_TTL_MS) return issueCardsCache.cards;
+  const cards = loadIssueCards(fetchFn);
+  const entry = { at: now, cards };
+  issueCardsCache = entry;
+  cards.catch(() => {
+    if (issueCardsCache === entry) issueCardsCache = null;
+  });
+  return cards;
+}
+
+async function loadIssueCards(fetchFn: typeof fetch): Promise<Issue.Card[]> {
+  const [websiteRows, archiveRows] = await Promise.all([
+    fetchAllRows<{ publish_at: string | null }>(fetchFn, WEBSITE_ALIAS, 'publish_at'),
+    fetchAllRows<ArchiveIssueRow>(
+      fetchFn,
+      ARCHIVE_ALIAS,
+      'slug, title, cover, meta_cover:meta->>cover, resolver_url:meta->>resolver_url',
+    ),
   ]);
 
-  const websiteByDate = indexWebsiteIssuesByDate(
-    websitePosts.map((post) => symbiontToTechArticle(post)).sort(sortByPublishDayThenLayoutWeightDesc),
-  );
-  const archiveByDate = indexArchiveIssuesByDate(archivePosts);
+  const websiteByDate = indexWebsiteIssuesByDate(websiteRows.map((row) => row.publish_at));
+  const archiveByDate = indexArchiveIssuesByDate(archiveRows);
   const inferredWebsiteIssueDates = Array.from(websiteByDate.entries())
     .filter(([, details]) => details.articleCount >= MIN_WEBSITE_ARTICLES_PER_ISSUE)
     .map(([issueDate]) => issueDate);

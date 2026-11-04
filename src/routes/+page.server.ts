@@ -3,10 +3,11 @@ import { appDb } from '#lib/utils/app-db.ts';
 import { fetchFeedPage, FEED_BATCH_SIZE } from '#lib/utils/feed-query.ts';
 import { parsePositiveInt } from '#lib/utils/post-pagination.ts';
 import { fetchPdfIssueDates } from '#lib/utils/issues.ts';
+import { FEED_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 export const prerender = false;
 
-export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
+export const load: PageServerLoad = async ({ fetch, url, cookies, setHeaders }) => {
   const theme = cookies.get('theme') || 'light';
 
   try {
@@ -27,6 +28,10 @@ export const load: PageServerLoad = async ({ fetch, url, cookies }) => {
     });
     // For the "print edition" link on each date divider.
     const pdfIssueDates = await fetchPdfIssueDates(db, page.posts);
+
+    // Only on success: the catch below renders "no posts", which must not
+    // outlive the problem.
+    setHeaders({ 'cache-control': FEED_CACHE_CONTROL });
 
     return {
       posts: page.posts,

@@ -1,12 +1,24 @@
 /**
  * Route: /issues/YYYY-MM-DD.pdf
  *
- * Looks up the archive issue in the DB and re-streams the upstream PDF
- * so the browser URL stays unchanged.
+ * Redirects to the issue's PDF in Supabase storage.
+ *
+ * This used to stream the PDF through the function so the address bar kept
+ * tech.caltech.edu. In the first days after launch, crawlers (Amazonbot
+ * above all) fetched the whole archive, and every byte went Supabase ->
+ * function -> CDN: about 28 GB of Vercel Fast Origin Transfer in two days,
+ * against Hobby's 10 GB a month. A CDN cache hit would not have helped
+ * much either -- Fast Data Transfer counts cached bytes too. Supabase's own
+ * CDN serves the file now; links and the sitemap keep this URL.
+ *
+ * The redirect itself is cached at the CDN for a week: an archive PDF's
+ * storage path (issues/{date}.pdf) does not change once uploaded.
  */
 
 import { symbiont } from '#lib/symbiont.ts';
 import type { RequestHandler } from './$types';
+
+const REDIRECT_CACHE_CONTROL = 'public, max-age=86400, s-maxage=604800';
 
 export const GET: RequestHandler = async ({ params, fetch }) => {
   const date = params.date;
@@ -17,24 +29,12 @@ export const GET: RequestHandler = async ({ params, fetch }) => {
   }
 
   const resolverUrl: string | undefined = post.meta?.resolver_url;
-  if (!resolverUrl?.endsWith('.pdf')) {
-    return resolverUrl
-      ? new Response(null, { status: 302, headers: { Location: resolverUrl } })
-      : new Response(`No PDF available for ${date}`, { status: 404 });
+  if (!resolverUrl) {
+    return new Response(`No PDF available for ${date}`, { status: 404 });
   }
 
-  const upstream = await fetch(resolverUrl);
-  if (!upstream.ok) {
-    return new Response(null, { status: 302, headers: { Location: resolverUrl } });
-  }
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/pdf',
-    'Content-Disposition': `inline; filename="${date}.pdf"`,
-    'Cache-Control': 'public, max-age=31536000, immutable',
-  };
-  const length = upstream.headers.get('content-length');
-  if (length) headers['Content-Length'] = length;
-
-  return new Response(upstream.body, { status: 200, headers });
+  return new Response(null, {
+    status: 302,
+    headers: { Location: resolverUrl, 'Cache-Control': REDIRECT_CACHE_CONTROL },
+  });
 };

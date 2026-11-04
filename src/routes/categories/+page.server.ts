@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { appDb } from '#lib/utils/app-db.ts';
 import { fetchCategories } from '#lib/utils/listing-query.ts';
+import { PAGE_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 export const prerender = false;
 
@@ -14,7 +15,7 @@ export const prerender = false;
  */
 export const load: PageServerLoad = async ({ fetch, setHeaders }) => {
   const categories = await fetchCategories(appDb(fetch));
-  setHeaders({ 'cache-control': 'public, max-age=60, s-maxage=300' });
+  setHeaders({ 'cache-control': PAGE_CACHE_CONTROL });
   return {
     // Most-used first, as before: this page is how readers find the sections.
     categories: categories

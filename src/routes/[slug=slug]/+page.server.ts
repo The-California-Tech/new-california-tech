@@ -18,6 +18,7 @@ import { symbiontToTechArticle } from '#lib/utils/post-converter.ts';
 import { appDb } from '#lib/utils/app-db.ts';
 import { issuePageDate } from '#lib/utils/issues.ts';
 import { error, redirect } from '@sveltejs/kit';
+import { PAGE_CACHE_CONTROL } from '#lib/utils/cache-control.ts';
 
 // Dynamic route - fetches posts from database at request time
 export const prerender = false;
@@ -81,9 +82,8 @@ export const load = async (event: any) => {
       ? await issuePageDate(appDb(event.fetch), qwerPost.published)
       : null;
 
-  // Set cache headers for client-side navigation
   event.setHeaders({
-    'cache-control': 'public, max-age=60, s-maxage=60',
+    'cache-control': PAGE_CACHE_CONTROL,
   });
 
   return {
